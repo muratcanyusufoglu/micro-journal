@@ -1,16 +1,16 @@
-import * as SQLite from "expo-sqlite"
+import * as SQLite from "expo-sqlite";
 
-let db: SQLite.SQLiteDatabase | null = null
+let db: SQLite.SQLiteDatabase | null = null;
 
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (db) return db
+  if (db) return db;
 
-  db = await SQLite.openDatabaseAsync("oneline.db")
+  db = await SQLite.openDatabaseAsync("oneline.db");
 
   // Run migrations
-  await runMigrations(db)
+  await runMigrations(db);
 
-  return db
+  return db;
 }
 
 async function runMigrations(database: SQLite.SQLiteDatabase) {
@@ -29,7 +29,8 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
       photoUri TEXT,
       photoTitle TEXT,
       durationMs INTEGER,
-      isEdited INTEGER DEFAULT 0
+      isEdited INTEGER DEFAULT 0,
+      mood TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_entries_dateKey ON entries(dateKey);
@@ -45,39 +46,57 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_text_revisions_entryId ON text_revisions(entryId);
-  `)
+  `);
+
+  // Lightweight column migrations (for existing installs)
+  const columns = await database.getAllAsync<{name: string}>(
+    `PRAGMA table_info(entries);`
+  );
+  const columnNames = new Set(columns.map((c) => c.name));
+
+  if (!columnNames.has("mood")) {
+    await database.execAsync(`ALTER TABLE entries ADD COLUMN mood TEXT;`);
+  }
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
-    throw new Error("Database not initialized. Call initDatabase() first.")
+    throw new Error("Database not initialized. Call initDatabase() first.");
   }
-  return db
+  return db;
 }
 
 export function formatDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function formatTimestamp(date: Date): string {
-  return date.toISOString()
+  return date.toISOString();
 }
 
 export function formatDisplayTime(isoString: string): string {
-  const date = new Date(isoString)
-  const hours = date.getHours()
-  const minutes = String(date.getMinutes()).padStart(2, "0")
-  const ampm = hours >= 12 ? "PM" : "AM"
-  const displayHours = hours % 12 || 12
-  return `${displayHours}:${minutes} ${ampm}`
+  const date = new Date(isoString);
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes} ${ampm}`;
 }
 
 export function formatDisplayDate(dateKey: string): string {
-  const date = new Date(dateKey)
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+  const date = new Date(dateKey);
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
   const months = [
     "January",
     "February",
@@ -91,13 +110,12 @@ export function formatDisplayDate(dateKey: string): string {
     "October",
     "November",
     "December",
-  ]
+  ];
 
-  const dayName = days[date.getDay()]
-  const monthName = months[date.getMonth()]
-  const day = date.getDate()
-  const year = date.getFullYear()
+  const dayName = days[date.getDay()];
+  const monthName = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
 
-  return `${dayName}, ${monthName} ${day}, ${year}`
+  return `${dayName}, ${monthName} ${day}, ${year}`;
 }
-

@@ -110,6 +110,7 @@ export default function DayDetailScreen() {
                   text={entry.textContent || ""}
                   timestamp={formatDisplayTime(entry.createdAt)}
                   isEdited={entry.isEdited === 1}
+                  mood={entry.mood}
                   onMenuPress={() => handleEntryMenu(entry)}
                 />
               )

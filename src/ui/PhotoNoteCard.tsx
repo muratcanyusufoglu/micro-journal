@@ -100,3 +100,4 @@ export function PhotoNoteCard({ photoUri, title, timestamp, onMenuPress }: Photo
   )
 }
 
+

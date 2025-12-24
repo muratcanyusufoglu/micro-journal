@@ -27,6 +27,17 @@ export type ColorScheme = {
   // Status
   successSoft: string;
   dangerSoft: string;
+
+  // Tags / Mood ribbons (backgrounds)
+  tagCalm: string;
+  tagHappy: string;
+  tagReflective: string;
+  tagStressed: string;
+  tagGrateful: string;
+  tagEnergized: string;
+  tagFocused: string;
+  tagSad: string;
+  tagNeutral: string;
 };
 
 export const lightColors: ColorScheme = {
@@ -53,6 +64,17 @@ export const lightColors: ColorScheme = {
   // Status
   successSoft: "#BFD8C7",
   dangerSoft: "#E6B8B8",
+
+  // Tags / Mood ribbons (backgrounds)
+  tagCalm: "#C8D6CC",
+  tagHappy: "#BFD8C7",
+  tagReflective: "#E7E5E0",
+  tagStressed: "#E6B8B8",
+  tagGrateful: "#E6DFB8",
+  tagEnergized: "#B8D4E6",
+  tagFocused: "#D2C7E6",
+  tagSad: "#C9D1DA",
+  tagNeutral: "#F1F1EE",
 };
 
 export const darkColors: ColorScheme = {
@@ -79,6 +101,17 @@ export const darkColors: ColorScheme = {
   // Status
   successSoft: "#4A6B54",
   dangerSoft: "#8B5757",
+
+  // Tags / Mood ribbons (backgrounds)
+  tagCalm: "#2F3F38",
+  tagHappy: "#2D4636",
+  tagReflective: "#333333",
+  tagStressed: "#513333",
+  tagGrateful: "#4A4630",
+  tagEnergized: "#2D3C4A",
+  tagFocused: "#3C334A",
+  tagSad: "#2F3944",
+  tagNeutral: "#2A2A2A",
 };
 
 export const warmColors: ColorScheme = {
@@ -105,6 +138,17 @@ export const warmColors: ColorScheme = {
   // Status
   successSoft: "#C8D4B8",
   dangerSoft: "#E6B8B8",
+
+  // Tags / Mood ribbons (backgrounds)
+  tagCalm: "#E5DAC8",
+  tagHappy: "#C8D4B8",
+  tagReflective: "#F5F2ED",
+  tagStressed: "#E6B8B8",
+  tagGrateful: "#E9D9B8",
+  tagEnergized: "#C8DCE6",
+  tagFocused: "#D9CCE9",
+  tagSad: "#D7D1C6",
+  tagNeutral: "#EAE0D5",
 };
 
 export const coolColors: ColorScheme = {
@@ -131,6 +175,17 @@ export const coolColors: ColorScheme = {
   // Status
   successSoft: "#B8D4C8",
   dangerSoft: "#E6B8B8",
+
+  // Tags / Mood ribbons (backgrounds)
+  tagCalm: "#A8C5D9",
+  tagHappy: "#B8D4C8",
+  tagReflective: "#EDF1F5",
+  tagStressed: "#E6B8B8",
+  tagGrateful: "#D9D3A8",
+  tagEnergized: "#A8CFE6",
+  tagFocused: "#C6B8E6",
+  tagSad: "#B7C2CD",
+  tagNeutral: "#DFE7ED",
 };
 
 export type ThemeName = "light" | "dark" | "warm" | "cool";

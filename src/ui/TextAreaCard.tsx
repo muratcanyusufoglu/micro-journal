@@ -1,12 +1,13 @@
-import React from "react"
-import { TextInput, View, ViewStyle, TextStyle } from "react-native"
-import { useTheme } from "../theme/ThemeProvider"
+import React from "react";
+import {TextInput, TextStyle, View, ViewStyle} from "react-native";
+import {useTheme} from "../theme/ThemeProvider";
 
 interface TextAreaCardProps {
-  value: string
-  onChangeText: (text: string) => void
-  placeholder?: string
-  minHeight?: number
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  minHeight?: number;
+  footerRight?: React.ReactNode;
 }
 
 export function TextAreaCard({
@@ -14,8 +15,9 @@ export function TextAreaCard({
   onChangeText,
   placeholder = "One line is enough… or more if you need.",
   minHeight = 280,
+  footerRight,
 }: TextAreaCardProps) {
-  const theme = useTheme()
+  const theme = useTheme();
 
   const $container: ViewStyle = {
     backgroundColor: theme.colors.bgSurface,
@@ -23,9 +25,11 @@ export function TextAreaCard({
     borderWidth: 1,
     borderColor: theme.colors.borderCard,
     padding: theme.spacing.lg,
+    paddingBottom: footerRight ? theme.spacing.xl : theme.spacing.lg,
     minHeight,
     ...theme.shadows.soft,
-  }
+    position: "relative",
+  };
 
   const $input: TextStyle = {
     fontSize: 20,
@@ -33,9 +37,9 @@ export function TextAreaCard({
     color: theme.colors.textPrimary,
     fontWeight: "400",
     flex: 1,
-  }
+  };
 
-  const $placeholderColor = theme.colors.textPlaceholder
+  const $placeholderColor = theme.colors.textPlaceholder;
 
   return (
     <View style={$container}>
@@ -48,7 +52,18 @@ export function TextAreaCard({
         multiline
         textAlignVertical="top"
       />
-    </View>
-  )
-}
 
+      {footerRight && (
+        <View
+          style={{
+            position: "absolute",
+            right: theme.spacing.md,
+            bottom: theme.spacing.md,
+          }}
+        >
+          {footerRight}
+        </View>
+      )}
+    </View>
+  );
+}

@@ -6,6 +6,7 @@ import {
   Screen,
   IconButton,
   TextAreaCard,
+  MoodRibbonPicker,
   MediaToolbar,
   PrimaryButton,
   VoiceMiniRecorder,
@@ -26,11 +27,12 @@ import {
   formatDisplayTime,
   deleteEntry,
 } from "../src/data"
-import type { Entry } from "../src/data/types"
+import type { Entry, Mood } from "../src/data/types"
 
 export default function TodayScreen() {
   const theme = useTheme()
   const [text, setText] = useState("")
+  const [mood, setMood] = useState<Mood | null>(null)
   const [todayEntries, setTodayEntries] = useState<Entry[]>([])
   const [dateKey, setDateKey] = useState("")
 
@@ -55,8 +57,9 @@ export default function TodayScreen() {
 
     try {
       if (text.trim()) {
-        await addTextEntry(dateKey, text.trim())
+        await addTextEntry(dateKey, text.trim(), mood)
         setText("")
+        setMood(null)
       }
 
       if (voiceRecorder.recordedUri) {
@@ -201,7 +204,11 @@ export default function TodayScreen() {
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={$scrollContent}>
-          <TextAreaCard value={text} onChangeText={setText} />
+          <TextAreaCard
+            value={text}
+            onChangeText={setText}
+            footerRight={<MoodRibbonPicker value={mood} onChange={setMood} />}
+          />
 
           <MediaToolbar
             onMicPress={() => {
@@ -247,6 +254,7 @@ export default function TodayScreen() {
                       text={entry.textContent || ""}
                       timestamp={formatDisplayTime(entry.createdAt)}
                       isEdited={entry.isEdited === 1}
+                      mood={entry.mood}
                       onMenuPress={() => handleEntryMenu(entry)}
                     />
                   )

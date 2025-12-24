@@ -22,3 +22,4 @@ export function Card({ children, style }: CardProps) {
   return <View style={[$card, style]}>{children}</View>
 }
 
+

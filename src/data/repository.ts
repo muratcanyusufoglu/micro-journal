@@ -1,16 +1,20 @@
 import { getDatabase, formatDateKey, formatTimestamp } from "./db"
-import type { Entry, TextRevision, DaySummary } from "./types"
+import type { Entry, TextRevision, DaySummary, Mood } from "./types"
 
 // ==================== TEXT ENTRIES ====================
 
-export async function addTextEntry(dateKey: string, text: string): Promise<number> {
+export async function addTextEntry(
+  dateKey: string,
+  text: string,
+  mood?: Mood | null
+): Promise<number> {
   const db = await getDatabase()
   const now = formatTimestamp(new Date())
 
   const result = await db.runAsync(
-    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, textContent, isEdited)
-     VALUES (?, 'text', ?, ?, ?, 0)`,
-    [dateKey, now, now, text]
+    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, textContent, isEdited, mood)
+     VALUES (?, 'text', ?, ?, ?, 0, ?)`,
+    [dateKey, now, now, text, mood || null]
   )
 
   return result.lastInsertRowId
