@@ -14,6 +14,7 @@ import {
   TextNoteCard,
   VoiceNoteCard,
   PhotoNoteCard,
+  PhotoTextNoteCard,
 } from "../src/ui"
 import { useVoiceRecorder } from "../src/hooks/useVoiceRecorder"
 import { usePhotoPicker } from "../src/hooks/usePhotoPicker"
@@ -56,21 +57,41 @@ export default function TodayScreen() {
     }
 
     try {
-      if (text.trim()) {
-        await addTextEntry(dateKey, text.trim(), mood)
+      const hasText = !!text.trim()
+      const hasPhotos = photoPicker.photos.length > 0
+
+      // If user adds text + photos together, store as a single combined photo entry
+      // (first photo gets the text; remaining photos stay photo-only)
+      if (hasText && hasPhotos) {
+        const [firstPhoto, ...restPhotos] = photoPicker.photos
+        await addPhotoEntry(dateKey, firstPhoto, undefined, text.trim(), mood)
+
+        for (const photoUri of restPhotos) {
+          await addPhotoEntry(dateKey, photoUri)
+        }
+
         setText("")
         setMood(null)
+        photoPicker.resetPhotos()
+      } else {
+        if (hasText) {
+          await addTextEntry(dateKey, text.trim(), mood)
+          setText("")
+          setMood(null)
+        }
+
+        if (hasPhotos) {
+          for (const photoUri of photoPicker.photos) {
+            await addPhotoEntry(dateKey, photoUri)
+          }
+          photoPicker.resetPhotos()
+        }
       }
 
       if (voiceRecorder.recordedUri) {
         await addVoiceEntry(dateKey, voiceRecorder.recordedUri, voiceRecorder.recordingDuration)
         voiceRecorder.resetRecording()
       }
-
-      for (const photoUri of photoPicker.photos) {
-        await addPhotoEntry(dateKey, photoUri)
-      }
-      photoPicker.resetPhotos()
 
       await loadTodayEntries()
     } catch (error) {
@@ -271,6 +292,18 @@ export default function TodayScreen() {
                 }
 
                 if (entry.type === "photo") {
+                  if (entry.textContent && entry.textContent.trim().length > 0) {
+                    return (
+                      <PhotoTextNoteCard
+                        key={entry.id}
+                        photoUri={entry.photoUri || ""}
+                        text={entry.textContent}
+                        timestamp={formatDisplayTime(entry.createdAt)}
+                        mood={entry.mood}
+                        onMenuPress={() => handleEntryMenu(entry)}
+                      />
+                    )
+                  }
                   return (
                     <PhotoNoteCard
                       key={entry.id}

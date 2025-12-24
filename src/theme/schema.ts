@@ -28,6 +28,9 @@ export type ColorScheme = {
   successSoft: string;
   dangerSoft: string;
 
+  // Overlays
+  scrim: string;
+
   // Tags / Mood ribbons (backgrounds)
   tagCalm: string;
   tagHappy: string;
@@ -64,6 +67,9 @@ export const lightColors: ColorScheme = {
   // Status
   successSoft: "#BFD8C7",
   dangerSoft: "#E6B8B8",
+
+  // Overlays
+  scrim: "rgba(0,0,0,0.65)",
 
   // Tags / Mood ribbons (backgrounds)
   tagCalm: "#C8D6CC",
@@ -102,6 +108,9 @@ export const darkColors: ColorScheme = {
   successSoft: "#4A6B54",
   dangerSoft: "#8B5757",
 
+  // Overlays
+  scrim: "rgba(0,0,0,0.82)",
+
   // Tags / Mood ribbons (backgrounds)
   tagCalm: "#2F3F38",
   tagHappy: "#2D4636",
@@ -139,6 +148,9 @@ export const warmColors: ColorScheme = {
   successSoft: "#C8D4B8",
   dangerSoft: "#E6B8B8",
 
+  // Overlays
+  scrim: "rgba(0,0,0,0.65)",
+
   // Tags / Mood ribbons (backgrounds)
   tagCalm: "#E5DAC8",
   tagHappy: "#C8D4B8",
@@ -175,6 +187,9 @@ export const coolColors: ColorScheme = {
   // Status
   successSoft: "#B8D4C8",
   dangerSoft: "#E6B8B8",
+
+  // Overlays
+  scrim: "rgba(0,0,0,0.65)",
 
   // Tags / Mood ribbons (backgrounds)
   tagCalm: "#A8C5D9",

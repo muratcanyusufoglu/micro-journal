@@ -8,6 +8,7 @@ import {
   TextNoteCard,
   VoiceNoteCard,
   PhotoNoteCard,
+  PhotoTextNoteCard,
   FloatingActionButton,
   BottomSheet,
   SecondaryButton,
@@ -127,6 +128,18 @@ export default function DayDetailScreen() {
             }
 
             if (entry.type === "photo") {
+              if (entry.textContent && entry.textContent.trim().length > 0) {
+                return (
+                  <PhotoTextNoteCard
+                    key={entry.id}
+                    photoUri={entry.photoUri || ""}
+                    text={entry.textContent}
+                    timestamp={formatDisplayTime(entry.createdAt)}
+                    mood={entry.mood}
+                    onMenuPress={() => handleEntryMenu(entry)}
+                  />
+                )
+              }
               return (
                 <PhotoNoteCard
                   key={entry.id}

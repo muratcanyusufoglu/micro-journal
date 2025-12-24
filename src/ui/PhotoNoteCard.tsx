@@ -1,17 +1,32 @@
-import React from "react"
-import { View, Text, Image, Pressable, ViewStyle, TextStyle } from "react-native"
-import { MaterialIcons } from "@expo/vector-icons"
-import { useTheme } from "../theme/ThemeProvider"
+import {MaterialIcons} from "@expo/vector-icons";
+import React, {useState} from "react";
+import {
+  Image,
+  ImageStyle,
+  Pressable,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
+import {useTheme} from "../theme/ThemeProvider";
+import {PhotoViewerModal} from "./PhotoViewerModal";
 
 interface PhotoNoteCardProps {
-  photoUri: string
-  title?: string
-  timestamp: string
-  onMenuPress: () => void
+  photoUri: string;
+  title?: string;
+  timestamp: string;
+  onMenuPress: () => void;
 }
 
-export function PhotoNoteCard({ photoUri, title, timestamp, onMenuPress }: PhotoNoteCardProps) {
-  const theme = useTheme()
+export function PhotoNoteCard({
+  photoUri,
+  title,
+  timestamp,
+  onMenuPress,
+}: PhotoNoteCardProps) {
+  const theme = useTheme();
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
 
   const $card: ViewStyle = {
     backgroundColor: theme.colors.bgSurface,
@@ -21,37 +36,37 @@ export function PhotoNoteCard({ photoUri, title, timestamp, onMenuPress }: Photo
     padding: theme.spacing.md,
     paddingBottom: theme.spacing.lg,
     ...theme.shadows.soft,
-  }
+  };
 
   const $imageContainer: ViewStyle = {
     width: "100%",
     aspectRatio: 4 / 3,
-    borderRadius: 20,
+    borderRadius: theme.radius.thumb,
     overflow: "hidden",
     backgroundColor: theme.colors.bgPrimary,
-  }
+  };
 
-  const $image: ViewStyle = {
+  const $image: ImageStyle = {
     width: "100%",
     height: "100%",
-  }
+  };
 
   const $footer: ViewStyle = {
     paddingHorizontal: theme.spacing.sm,
     marginTop: theme.spacing.md,
-  }
+  };
 
   const $header: ViewStyle = {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-  }
+  };
 
   const $title: TextStyle = {
     fontSize: 18,
     fontWeight: "500",
     color: theme.colors.textPrimary,
-  }
+  };
 
   const $timestamp: TextStyle = {
     fontSize: theme.typography.micro,
@@ -59,25 +74,33 @@ export function PhotoNoteCard({ photoUri, title, timestamp, onMenuPress }: Photo
     fontWeight: "500",
     letterSpacing: 0.5,
     marginTop: 4,
-  }
+  };
 
   const $menuButton: ViewStyle = {
     padding: theme.spacing.sm,
     marginRight: -theme.spacing.sm,
     borderRadius: theme.radius.iconButton,
-  }
+  };
 
   return (
     <View style={$card}>
-      <View style={$imageContainer}>
-        <Image source={{ uri: photoUri }} style={$image} resizeMode="cover" />
-      </View>
+      <Pressable
+        style={({pressed}) => [
+          $imageContainer,
+          {
+            opacity: pressed ? 0.95 : 1,
+          },
+        ]}
+        onPress={() => setIsViewerVisible(true)}
+      >
+        <Image source={{uri: photoUri}} style={$image} resizeMode="cover" />
+      </Pressable>
 
       <View style={$footer}>
         <View style={$header}>
           {title && <Text style={$title}>{title}</Text>}
           <Pressable
-            style={({ pressed }) => [
+            style={({pressed}) => [
               $menuButton,
               {
                 backgroundColor: pressed
@@ -96,8 +119,12 @@ export function PhotoNoteCard({ photoUri, title, timestamp, onMenuPress }: Photo
         </View>
         <Text style={$timestamp}>{timestamp}</Text>
       </View>
+
+      <PhotoViewerModal
+        visible={isViewerVisible}
+        photoUri={photoUri}
+        onClose={() => setIsViewerVisible(false)}
+      />
     </View>
-  )
+  );
 }
-
-

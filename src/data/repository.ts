@@ -74,15 +74,17 @@ export async function addVoiceEntry(
 export async function addPhotoEntry(
   dateKey: string,
   photoUri: string,
-  title?: string
+  title?: string,
+  textContent?: string | null,
+  mood?: Mood | null
 ): Promise<number> {
   const db = await getDatabase()
   const now = formatTimestamp(new Date())
 
   const result = await db.runAsync(
-    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, photoUri, photoTitle, isEdited)
-     VALUES (?, 'photo', ?, ?, ?, ?, 0)`,
-    [dateKey, now, now, photoUri, title || null]
+    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, photoUri, photoTitle, textContent, isEdited, mood)
+     VALUES (?, 'photo', ?, ?, ?, ?, ?, 0, ?)`,
+    [dateKey, now, now, photoUri, title || null, textContent || null, mood || null]
   )
 
   return result.lastInsertRowId

@@ -10,6 +10,7 @@ import {
   TextNoteCard,
   VoiceNoteCard,
   PhotoNoteCard,
+  PhotoTextNoteCard,
   SecondaryButton,
 } from "../src/ui"
 import { useVoicePlayer } from "../src/hooks/useVoicePlayer"
@@ -352,6 +353,18 @@ export default function CalendarScreen() {
                         }
 
                         if (entry.type === "photo") {
+                          if (entry.textContent && entry.textContent.trim().length > 0) {
+                            return (
+                              <PhotoTextNoteCard
+                                key={entry.id}
+                                photoUri={entry.photoUri || ""}
+                                text={entry.textContent}
+                                timestamp={formatDisplayTime(entry.createdAt)}
+                                mood={entry.mood}
+                                onMenuPress={() => handleEntryMenu(entry)}
+                              />
+                            )
+                          }
                           return (
                             <PhotoNoteCard
                               key={entry.id}
