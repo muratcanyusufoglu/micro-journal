@@ -1,14 +1,20 @@
 {
   "expo": {
-    "name": "DailyNote",
-    "slug": "DailyNote",
+    "name": "OneLine",
+    "slug": "OneLine",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "dailynote",
+    "icon": "./assets/images/dailyicon.png",
+    "scheme": "oneline",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/dailysplash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#F7F6F3"
+    },
     "ios": {
+      "bundleIdentifier": "com.oneline.dailynotes",
       "supportsTablet": true
     },
     "android": {
@@ -19,7 +25,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.oneline.dailynotes"
     },
     "web": {
       "output": "static",
@@ -30,10 +37,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "image": "./assets/images/dailysplash.png",
+          "resizeMode": "cover",
+          "imageWidth": 706,
+          "backgroundColor": "#F7F6F3",
           "dark": {
             "backgroundColor": "#000000"
           }

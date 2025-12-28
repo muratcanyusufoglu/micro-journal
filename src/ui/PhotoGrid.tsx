@@ -1,22 +1,22 @@
-import React from "react"
-import { View, Image, Pressable, ViewStyle } from "react-native"
-import { MaterialIcons } from "@expo/vector-icons"
-import { useTheme } from "../theme/ThemeProvider"
+import {MaterialIcons} from "@expo/vector-icons";
+import React from "react";
+import {Image, Pressable, View, ViewStyle} from "react-native";
+import {useTheme} from "../theme/ThemeProvider";
 
 interface PhotoGridProps {
-  photos: string[]
-  onRemovePhoto: (index: number) => void
-  onAddPhoto: () => void
+  photos: string[];
+  onRemovePhoto: (index: number) => void;
+  onAddPhoto: () => void;
 }
 
-export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps) {
-  const theme = useTheme()
+export function PhotoGrid({photos, onRemovePhoto, onAddPhoto}: PhotoGridProps) {
+  const theme = useTheme();
 
   const $grid: ViewStyle = {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
-  }
+  };
 
   const $photoContainer: ViewStyle = {
     width: 80,
@@ -24,12 +24,12 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
     borderRadius: theme.radius.thumb,
     overflow: "hidden",
     position: "relative",
-  }
+  };
 
   const $image: ViewStyle = {
     width: "100%",
     height: "100%",
-  }
+  };
 
   const $removeButton: ViewStyle = {
     position: "absolute",
@@ -40,7 +40,7 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     alignItems: "center",
     justifyContent: "center",
-  }
+  };
 
   const $addButton: ViewStyle = {
     width: 80,
@@ -52,7 +52,7 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-  }
+  };
 
   return (
     <View style={$grid}>
@@ -62,7 +62,7 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
           style={$photoContainer}
           onPress={() => onRemovePhoto(index)}
         >
-          <Image source={{ uri }} style={$image} resizeMode="cover" />
+          <Image source={{uri}} style={$image} resizeMode="cover" />
           <View style={$removeButton}>
             <MaterialIcons name="close" size={20} color="white" />
           </View>
@@ -71,7 +71,7 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
 
       {photos.length < 4 && (
         <Pressable
-          style={({ pressed }) => [
+          style={({pressed}) => [
             $addButton,
             {
               opacity: pressed ? 0.6 : 1,
@@ -87,7 +87,5 @@ export function PhotoGrid({ photos, onRemovePhoto, onAddPhoto }: PhotoGridProps)
         </Pressable>
       )}
     </View>
-  )
+  );
 }
-
-
