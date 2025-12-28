@@ -1,123 +1,155 @@
-import React, { useState, useEffect } from "react"
-import { View, Text, ScrollView, ViewStyle, TextStyle, Alert } from "react-native"
-import { router } from "expo-router"
-import { useTheme } from "../src/theme/ThemeProvider"
+import {router} from "expo-router";
+import React, {useEffect, useState} from "react";
 import {
-  Screen,
-  IconButton,
-  TextAreaCard,
-  MoodRibbonPicker,
-  MediaToolbar,
-  PrimaryButton,
-  VoiceMiniRecorder,
-  PhotoGrid,
-  TextNoteCard,
-  VoiceNoteCard,
-  PhotoNoteCard,
-  PhotoTextNoteCard,
-} from "../src/ui"
-import { useVoiceRecorder } from "../src/hooks/useVoiceRecorder"
-import { usePhotoPicker } from "../src/hooks/usePhotoPicker"
-import { useVoicePlayer } from "../src/hooks/useVoicePlayer"
+  Alert,
+  ScrollView,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
 import {
-  getTodayDateKey,
+  addPhotoEntry,
   addTextEntry,
   addVoiceEntry,
-  addPhotoEntry,
-  listEntriesByDate,
-  formatDisplayTime,
   deleteEntry,
-} from "../src/data"
-import type { Entry, Mood } from "../src/data/types"
+  formatDisplayTime,
+  getTodayDateKey,
+  listEntriesByDate,
+} from "../src/data";
+import type {Entry, Mood} from "../src/data/types";
+import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
+import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
+import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
+import {useTheme} from "../src/theme/ThemeProvider";
+import {
+  IconButton,
+  MediaToolbar,
+  MoodRibbonPicker,
+  PhotoGrid,
+  PhotoNoteCard,
+  PhotoTextNoteCard,
+  PrimaryButton,
+  Screen,
+  TextAreaCard,
+  TextNoteCard,
+  useToast,
+  VoiceMiniRecorder,
+  VoiceNoteCard,
+} from "../src/ui";
 
 export default function TodayScreen() {
-  const theme = useTheme()
-  const [text, setText] = useState("")
-  const [mood, setMood] = useState<Mood | null>(null)
-  const [todayEntries, setTodayEntries] = useState<Entry[]>([])
-  const [dateKey, setDateKey] = useState("")
+  const theme = useTheme();
+  const toast = useToast();
+  const [text, setText] = useState("");
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [todayEntries, setTodayEntries] = useState<Entry[]>([]);
+  const [dateKey, setDateKey] = useState("");
 
-  const voiceRecorder = useVoiceRecorder()
-  const photoPicker = usePhotoPicker()
+  const voiceRecorder = useVoiceRecorder();
+  const photoPicker = usePhotoPicker();
 
   useEffect(() => {
-    loadTodayEntries()
-  }, [])
+    loadTodayEntries();
+  }, []);
 
   async function loadTodayEntries() {
-    const today = await getTodayDateKey()
-    setDateKey(today)
-    const entries = await listEntriesByDate(today)
-    setTodayEntries(entries)
+    const today = await getTodayDateKey();
+    setDateKey(today);
+    const entries = await listEntriesByDate(today);
+    setTodayEntries(entries);
   }
 
   async function handleAddToToday() {
-    if (!text.trim() && !voiceRecorder.recordedUri && photoPicker.photos.length === 0) {
-      return
+    if (
+      !text.trim() &&
+      !voiceRecorder.recordedUri &&
+      photoPicker.photos.length === 0
+    ) {
+      return;
     }
 
     try {
-      const hasText = !!text.trim()
-      const hasPhotos = photoPicker.photos.length > 0
+      const hasText = !!text.trim();
+      const hasPhotos = photoPicker.photos.length > 0;
+      let addedCount = 0;
 
       // If user adds text + photos together, store as a single combined photo entry
       // (first photo gets the text; remaining photos stay photo-only)
       if (hasText && hasPhotos) {
-        const [firstPhoto, ...restPhotos] = photoPicker.photos
-        await addPhotoEntry(dateKey, firstPhoto, undefined, text.trim(), mood)
+        const [firstPhoto, ...restPhotos] = photoPicker.photos;
+        await addPhotoEntry(dateKey, firstPhoto, undefined, text.trim(), mood);
+        addedCount += 1;
 
         for (const photoUri of restPhotos) {
-          await addPhotoEntry(dateKey, photoUri)
+          await addPhotoEntry(dateKey, photoUri);
+          addedCount += 1;
         }
 
-        setText("")
-        setMood(null)
-        photoPicker.resetPhotos()
+        setText("");
+        setMood(null);
+        photoPicker.resetPhotos();
       } else {
         if (hasText) {
-          await addTextEntry(dateKey, text.trim(), mood)
-          setText("")
-          setMood(null)
+          await addTextEntry(dateKey, text.trim(), mood);
+          addedCount += 1;
+          setText("");
+          setMood(null);
         }
 
         if (hasPhotos) {
           for (const photoUri of photoPicker.photos) {
-            await addPhotoEntry(dateKey, photoUri)
+            await addPhotoEntry(dateKey, photoUri);
+            addedCount += 1;
           }
-          photoPicker.resetPhotos()
+          photoPicker.resetPhotos();
         }
       }
 
       if (voiceRecorder.recordedUri) {
-        await addVoiceEntry(dateKey, voiceRecorder.recordedUri, voiceRecorder.recordingDuration)
-        voiceRecorder.resetRecording()
+        await addVoiceEntry(
+          dateKey,
+          voiceRecorder.recordedUri,
+          voiceRecorder.recordingDuration
+        );
+        addedCount += 1;
+        voiceRecorder.resetRecording();
       }
 
-      await loadTodayEntries()
+      await loadTodayEntries();
+
+      toast.showToast({
+        title: "Added",
+        message:
+          addedCount === 1
+            ? "Entry saved to Today"
+            : `${addedCount} entries saved to Today`,
+        variant: "success",
+      });
     } catch (error) {
-      console.error("Error adding entries:", error)
-      Alert.alert("Error", "Failed to add entry")
+      console.error("Error adding entries:", error);
+      Alert.alert("Error", "Failed to add entry");
     }
   }
 
   async function handleDeleteEntry(entryId: number) {
     Alert.alert("Delete Entry", "Are you sure you want to delete this entry?", [
-      { text: "Cancel", style: "cancel" },
+      {text: "Cancel", style: "cancel"},
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          await deleteEntry(entryId)
-          await loadTodayEntries()
+          await deleteEntry(entryId);
+          await loadTodayEntries();
         },
       },
-    ])
+    ]);
   }
 
   function handleEntryMenu(entry: Entry) {
-    const options = ["Delete"]
+    const options = ["Delete"];
     if (entry.type === "text") {
-      options.unshift("Edit", "View History")
+      options.unshift("Edit", "View History");
     }
 
     Alert.alert("Entry Options", "", [
@@ -125,23 +157,24 @@ export default function TodayScreen() {
         text: option,
         onPress: () => {
           if (option === "Delete") {
-            handleDeleteEntry(entry.id)
+            handleDeleteEntry(entry.id);
           } else if (option === "View History") {
-            router.push(`/revision/${entry.id}`)
+            router.push(`/revision/${entry.id}`);
           } else if (option === "Edit") {
             // TODO: Open edit modal
           }
         },
       })),
-      { text: "Cancel", style: "cancel" },
-    ])
+      {text: "Cancel", style: "cancel"},
+    ]);
   }
 
-  const hasContent = text.trim() || voiceRecorder.recordedUri || photoPicker.photos.length > 0
+  const hasContent =
+    text.trim() || voiceRecorder.recordedUri || photoPicker.photos.length > 0;
 
   const $container: ViewStyle = {
     flex: 1,
-  }
+  };
 
   const $header: ViewStyle = {
     flexDirection: "row",
@@ -150,12 +183,12 @@ export default function TodayScreen() {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
-  }
+  };
 
   const $headerCenter: ViewStyle = {
     flex: 1,
     alignItems: "center",
-  }
+  };
 
   const $subtitle: TextStyle = {
     fontSize: theme.typography.micro,
@@ -164,20 +197,20 @@ export default function TodayScreen() {
     letterSpacing: 1.2,
     textTransform: "uppercase",
     marginBottom: 4,
-  }
+  };
 
   const $title: TextStyle = {
     fontSize: 32,
     color: theme.colors.textPrimary,
     fontWeight: "600",
-  }
+  };
 
   const $scrollContent: ViewStyle = {
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     gap: theme.spacing.md,
     paddingBottom: 120,
-  }
+  };
 
   const $bottomArea: ViewStyle = {
     position: "absolute",
@@ -187,12 +220,12 @@ export default function TodayScreen() {
     padding: theme.spacing.md,
     paddingBottom: theme.spacing.xl,
     backgroundColor: `${theme.colors.bgPrimary}F0`,
-  }
+  };
 
   const $todaySection: ViewStyle = {
     marginTop: theme.spacing.lg,
     gap: theme.spacing.md,
-  }
+  };
 
   const $sectionTitle: TextStyle = {
     fontSize: theme.typography.small,
@@ -201,30 +234,59 @@ export default function TodayScreen() {
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: theme.spacing.sm,
-  }
+  };
 
   const getCurrentDate = () => {
-    const now = new Date()
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    return `${days[now.getDay()].toUpperCase()}, ${months[now.getMonth()].toUpperCase()} ${now.getDate()}`
-  }
+    const now = new Date();
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return `${days[now.getDay()].toUpperCase()}, ${months[
+      now.getMonth()
+    ].toUpperCase()} ${now.getDate()}`;
+  };
 
   return (
     <Screen>
       <View style={$container}>
         <View style={$header}>
-          <IconButton icon="calendar-month" onPress={() => router.push("/calendar")} />
-          
+          <IconButton
+            icon="calendar-month"
+            onPress={() => router.push("/calendar")}
+          />
+
           <View style={$headerCenter}>
             <Text style={$subtitle}>{getCurrentDate()}</Text>
             <Text style={$title}>Today</Text>
           </View>
 
-          <IconButton icon="settings" onPress={() => router.push("/settings")} />
+          <IconButton
+            icon="settings"
+            onPress={() => router.push("/settings")}
+          />
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={$scrollContent}>
+        <ScrollView style={{flex: 1}} contentContainerStyle={$scrollContent}>
           <TextAreaCard
             value={text}
             onChangeText={setText}
@@ -234,9 +296,9 @@ export default function TodayScreen() {
           <MediaToolbar
             onMicPress={() => {
               if (voiceRecorder.isRecording) {
-                voiceRecorder.stopRecording()
+                voiceRecorder.stopRecording();
               } else {
-                voiceRecorder.startRecording()
+                voiceRecorder.startRecording();
               }
             }}
             onPhotoPress={photoPicker.pickPhoto}
@@ -248,9 +310,9 @@ export default function TodayScreen() {
               duration={voiceRecorder.formattedDuration}
               onToggle={() => {
                 if (voiceRecorder.isRecording) {
-                  voiceRecorder.stopRecording()
+                  voiceRecorder.stopRecording();
                 } else {
-                  voiceRecorder.resetRecording()
+                  voiceRecorder.resetRecording();
                 }
               }}
             />
@@ -278,7 +340,7 @@ export default function TodayScreen() {
                       mood={entry.mood}
                       onMenuPress={() => handleEntryMenu(entry)}
                     />
-                  )
+                  );
                 }
 
                 if (entry.type === "voice") {
@@ -288,11 +350,14 @@ export default function TodayScreen() {
                       entry={entry}
                       onMenuPress={() => handleEntryMenu(entry)}
                     />
-                  )
+                  );
                 }
 
                 if (entry.type === "photo") {
-                  if (entry.textContent && entry.textContent.trim().length > 0) {
+                  if (
+                    entry.textContent &&
+                    entry.textContent.trim().length > 0
+                  ) {
                     return (
                       <PhotoTextNoteCard
                         key={entry.id}
@@ -302,7 +367,7 @@ export default function TodayScreen() {
                         mood={entry.mood}
                         onMenuPress={() => handleEntryMenu(entry)}
                       />
-                    )
+                    );
                   }
                   return (
                     <PhotoNoteCard
@@ -312,10 +377,10 @@ export default function TodayScreen() {
                       timestamp={formatDisplayTime(entry.createdAt)}
                       onMenuPress={() => handleEntryMenu(entry)}
                     />
-                  )
+                  );
                 }
 
-                return null
+                return null;
               })}
             </View>
           )}
@@ -330,17 +395,23 @@ export default function TodayScreen() {
         </View>
       </View>
     </Screen>
-  )
+  );
 }
 
-function VoiceNoteCardWrapper({ entry, onMenuPress }: { entry: Entry; onMenuPress: () => void }) {
-  const player = useVoicePlayer(entry.audioUri || "")
+function VoiceNoteCardWrapper({
+  entry,
+  onMenuPress,
+}: {
+  entry: Entry;
+  onMenuPress: () => void;
+}) {
+  const player = useVoicePlayer(entry.audioUri || "");
 
   function formatDuration(ms: number): string {
-    const seconds = Math.floor(ms / 1000)
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${String(secs).padStart(2, "0")}`
+    const seconds = Math.floor(ms / 1000);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, "0")}`;
   }
 
   return (
@@ -351,6 +422,5 @@ function VoiceNoteCardWrapper({ entry, onMenuPress }: { entry: Entry; onMenuPres
       onPlayPause={player.togglePlayPause}
       onMenuPress={onMenuPress}
     />
-  )
+  );
 }
-

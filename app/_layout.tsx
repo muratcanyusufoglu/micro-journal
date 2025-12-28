@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import "react-native-reanimated";
 import {initDatabase} from "../src/data/db";
 import {ThemeProvider} from "../src/theme/ThemeProvider";
+import {ToastProvider} from "../src/ui";
 
 export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
@@ -27,15 +28,17 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <Stack screenOptions={{headerShown: false}}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="calendar" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="theme-selector" />
-        <Stack.Screen name="day/[dateKey]" />
-        <Stack.Screen name="revision/[entryId]" />
-      </Stack>
-      <StatusBar style="auto" />
+      <ToastProvider>
+        <Stack screenOptions={{headerShown: false}}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="calendar" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="theme-selector" />
+          <Stack.Screen name="day/[dateKey]" />
+          <Stack.Screen name="revision/[entryId]" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ToastProvider>
     </ThemeProvider>
   );
 }
