@@ -4,6 +4,7 @@ import { router } from "expo-router"
 import { useTheme } from "../src/theme/ThemeProvider"
 import { 
   Screen, 
+  ActionSheet,
   IconButton, 
   CalendarMonth, 
   DaySummaryPanel,
@@ -43,6 +44,7 @@ export default function CalendarScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [menuEntry, setMenuEntry] = useState<Entry | null>(null)
   const PAGE_SIZE = 30
 
   useEffect(() => {
@@ -104,26 +106,7 @@ export default function CalendarScreen() {
   }
 
   function handleEntryMenu(entry: Entry) {
-    const options = ["Delete"]
-    if (entry.type === "text") {
-      options.unshift("Edit", "View History")
-    }
-
-    Alert.alert("Entry Options", "", [
-      ...options.map((option) => ({
-        text: option,
-        onPress: () => {
-          if (option === "Delete") {
-            handleDeleteEntry(entry.id)
-          } else if (option === "View History") {
-            router.push(`/revision/${entry.id}`)
-          } else if (option === "Edit") {
-            // TODO: Open edit modal
-          }
-        },
-      })),
-      { text: "Cancel", style: "cancel" },
-    ])
+    setMenuEntry(entry)
   }
 
   function handlePrevMonth() {
@@ -254,6 +237,39 @@ export default function CalendarScreen() {
 
   return (
     <Screen>
+      <ActionSheet
+        visible={!!menuEntry}
+        title="Entry Options"
+        onClose={() => setMenuEntry(null)}
+        actions={[
+          ...(menuEntry?.type === "text"
+            ? [
+                {
+                  label: "Edit",
+                  icon: "edit",
+                  onPress: () => {},
+                },
+                {
+                  label: "View History",
+                  icon: "history",
+                  onPress: () => {
+                    if (!menuEntry) return
+                    router.push(`/revision/${menuEntry.id}`)
+                  },
+                },
+              ]
+            : []),
+          {
+            label: "Delete",
+            icon: "delete-outline",
+            variant: "destructive",
+            onPress: () => {
+              if (!menuEntry) return
+              handleDeleteEntry(menuEntry.id)
+            },
+          },
+        ]}
+      />
       <View style={$container}>
         <View style={$header}>
           <IconButton icon="arrow-back" onPress={() => router.back()} />

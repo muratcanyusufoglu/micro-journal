@@ -29,6 +29,7 @@ import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
 import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {
+  ActionSheet,
   IconButton,
   MediaToolbar,
   MoodRibbonPicker,
@@ -53,6 +54,7 @@ export default function TodayScreen() {
   const [dateKey, setDateKey] = useState("");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [menuEntry, setMenuEntry] = useState<Entry | null>(null);
 
   const voiceRecorder = useVoiceRecorder();
   const photoPicker = usePhotoPicker();
@@ -183,26 +185,7 @@ export default function TodayScreen() {
   }
 
   function handleEntryMenu(entry: Entry) {
-    const options = ["Delete"];
-    if (entry.type === "text") {
-      options.unshift("Edit", "View History");
-    }
-
-    Alert.alert("Entry Options", "", [
-      ...options.map((option) => ({
-        text: option,
-        onPress: () => {
-          if (option === "Delete") {
-            handleDeleteEntry(entry.id);
-          } else if (option === "View History") {
-            router.push(`/revision/${entry.id}`);
-          } else if (option === "Edit") {
-            // TODO: Open edit modal
-          }
-        },
-      })),
-      {text: "Cancel", style: "cancel"},
-    ]);
+    setMenuEntry(entry);
   }
 
   const hasContent =
@@ -345,6 +328,45 @@ export default function TodayScreen() {
   return (
     <Screen>
       <View style={$container}>
+        <ActionSheet
+          visible={!!menuEntry}
+          title="Entry Options"
+          onClose={() => setMenuEntry(null)}
+          actions={[
+            ...(menuEntry?.type === "text"
+              ? [
+                  {
+                    label: "Edit",
+                    icon: "edit",
+                    onPress: () => {
+                      toast.showToast({
+                        title: "Coming soon",
+                        message: "Edit will be available soon",
+                      });
+                    },
+                  },
+                  {
+                    label: "View History",
+                    icon: "history",
+                    onPress: () => {
+                      if (!menuEntry) return;
+                      router.push(`/revision/${menuEntry.id}`);
+                    },
+                  },
+                ]
+              : []),
+            {
+              label: "Delete",
+              icon: "delete-outline",
+              variant: "destructive",
+              onPress: () => {
+                if (!menuEntry) return;
+                handleDeleteEntry(menuEntry.id);
+              },
+            },
+          ]}
+        />
+
         <View style={$header}>
           <IconButton
             icon="calendar-month"

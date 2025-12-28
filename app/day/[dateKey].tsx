@@ -5,6 +5,7 @@ import { useTheme } from "../../src/theme/ThemeProvider"
 import {
   Screen,
   AppHeader,
+  ActionSheet,
   TextNoteCard,
   VoiceNoteCard,
   PhotoNoteCard,
@@ -29,6 +30,7 @@ export default function DayDetailScreen() {
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [showAddSheet, setShowAddSheet] = useState(false)
+  const [menuEntry, setMenuEntry] = useState<Entry | null>(null)
 
   useEffect(() => {
     if (dateKey) {
@@ -56,26 +58,7 @@ export default function DayDetailScreen() {
   }
 
   function handleEntryMenu(entry: Entry) {
-    const options = ["Delete"]
-    if (entry.type === "text") {
-      options.unshift("Edit", "View History")
-    }
-
-    Alert.alert("Entry Options", "", [
-      ...options.map((option) => ({
-        text: option,
-        onPress: () => {
-          if (option === "Delete") {
-            handleDeleteEntry(entry.id)
-          } else if (option === "View History") {
-            router.push(`/revision/${entry.id}`)
-          } else if (option === "Edit") {
-            // TODO: Open edit modal
-          }
-        },
-      })),
-      { text: "Cancel", style: "cancel" },
-    ])
+    setMenuEntry(entry)
   }
 
   const $container: ViewStyle = {
@@ -95,6 +78,39 @@ export default function DayDetailScreen() {
 
   return (
     <Screen>
+      <ActionSheet
+        visible={!!menuEntry}
+        title="Entry Options"
+        onClose={() => setMenuEntry(null)}
+        actions={[
+          ...(menuEntry?.type === "text"
+            ? [
+                {
+                  label: "Edit",
+                  icon: "edit",
+                  onPress: () => {},
+                },
+                {
+                  label: "View History",
+                  icon: "history",
+                  onPress: () => {
+                    if (!menuEntry) return
+                    router.push(`/revision/${menuEntry.id}`)
+                  },
+                },
+              ]
+            : []),
+          {
+            label: "Delete",
+            icon: "delete-outline",
+            variant: "destructive",
+            onPress: () => {
+              if (!menuEntry) return
+              handleDeleteEntry(menuEntry.id)
+            },
+          },
+        ]}
+      />
       <View style={$container}>
         <AppHeader
           title={formatDisplayDate(dateKey)}
