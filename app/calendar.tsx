@@ -13,6 +13,8 @@ import {
   PhotoNoteCard,
   PhotoTextNoteCard,
   SecondaryButton,
+  TextEditorSheet,
+  useToast,
 } from "../src/ui"
 import { useVoicePlayer } from "../src/hooks/useVoicePlayer"
 import {
@@ -22,6 +24,7 @@ import {
   getTotalEntriesCount,
   formatDisplayTime,
   deleteEntry,
+  updateTextEntry,
 } from "../src/data"
 import type { DaySummary, Entry } from "../src/data/types"
 
@@ -34,6 +37,7 @@ interface CalendarDay {
 
 export default function CalendarScreen() {
   const theme = useTheme()
+  const toast = useToast()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<string | undefined>()
   const [daySummary, setDaySummary] = useState<DaySummary | null>(null)
@@ -45,6 +49,7 @@ export default function CalendarScreen() {
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null)
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
   const PAGE_SIZE = 30
 
   useEffect(() => {
@@ -247,7 +252,9 @@ export default function CalendarScreen() {
                 {
                   label: "Edit",
                   icon: "edit",
-                  onPress: () => {},
+                  onPress: () => {
+                    setEditEntry(menuEntry)
+                  },
                 },
                 {
                   label: "View History",
@@ -269,6 +276,20 @@ export default function CalendarScreen() {
             },
           },
         ]}
+      />
+
+      <TextEditorSheet
+        visible={!!editEntry}
+        title="Edit Entry"
+        initialValue={editEntry?.textContent || ""}
+        onClose={() => setEditEntry(null)}
+        onSave={async (nextText) => {
+          if (!editEntry) return
+          await updateTextEntry(editEntry.id, nextText)
+          await loadAllEntries(true)
+          await loadMonth()
+          toast.showToast({title: "Saved", message: "Entry updated"})
+        }}
       />
       <View style={$container}>
         <View style={$header}>

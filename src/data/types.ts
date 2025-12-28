@@ -40,3 +40,10 @@ export interface DaySummary {
   hasVoice: boolean;
   hasPhoto: boolean;
 }
+
+export interface YearMoodCountRow {
+  year: string;
+  month: string; // "01".."12"
+  mood: Mood;
+  count: number;
+}

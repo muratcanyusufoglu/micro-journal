@@ -24,6 +24,10 @@ export default function SettingsScreen() {
     router.push("/theme-selector");
   }
 
+  function handleYearlyMood() {
+    router.push("/yearly-mood");
+  }
+
   const getThemeLabel = (themeName: string) => {
     const labels: Record<string, string> = {
       light: "Light",
@@ -195,6 +199,39 @@ export default function SettingsScreen() {
                   <Text style={$rowSubtitle}>
                     {getThemeLabel(theme.currentTheme)}
                   </Text>
+                </View>
+              </View>
+
+              <View style={$rowRight}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({pressed}) => [
+                $row,
+                $rowBorder,
+                {
+                  backgroundColor: pressed
+                    ? `${theme.colors.textPrimary}05`
+                    : "transparent",
+                },
+              ]}
+              onPress={handleYearlyMood}
+            >
+              <View style={$rowLeft}>
+                <MaterialIcons
+                  name="timeline"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+                <View>
+                  <Text style={$rowTitle}>Yearly Mood</Text>
+                  <Text style={$rowSubtitle}>See your feelings as a network</Text>
                 </View>
               </View>
 

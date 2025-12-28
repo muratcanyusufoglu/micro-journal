@@ -22,6 +22,7 @@ import {
   formatDisplayTime,
   getTodayDateKey,
   listEntriesByDate,
+  updateTextEntry,
 } from "../src/data";
 import type {Entry, Mood} from "../src/data/types";
 import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
@@ -39,6 +40,7 @@ import {
   PrimaryButton,
   Screen,
   TextAreaCard,
+  TextEditorSheet,
   TextNoteCard,
   useToast,
   VoiceMiniRecorder,
@@ -55,6 +57,7 @@ export default function TodayScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null);
+  const [editEntry, setEditEntry] = useState<Entry | null>(null);
 
   const voiceRecorder = useVoiceRecorder();
   const photoPicker = usePhotoPicker();
@@ -339,10 +342,7 @@ export default function TodayScreen() {
                     label: "Edit",
                     icon: "edit",
                     onPress: () => {
-                      toast.showToast({
-                        title: "Coming soon",
-                        message: "Edit will be available soon",
-                      });
+                      setEditEntry(menuEntry);
                     },
                   },
                   {
@@ -365,6 +365,19 @@ export default function TodayScreen() {
               },
             },
           ]}
+        />
+
+        <TextEditorSheet
+          visible={!!editEntry}
+          title="Edit Entry"
+          initialValue={editEntry?.textContent || ""}
+          onClose={() => setEditEntry(null)}
+          onSave={async (nextText) => {
+            if (!editEntry) return;
+            await updateTextEntry(editEntry.id, nextText);
+            await loadTodayEntries();
+            toast.showToast({title: "Saved", message: "Entry updated"});
+          }}
         />
 
         <View style={$header}>

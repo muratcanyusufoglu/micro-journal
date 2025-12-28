@@ -1,5 +1,5 @@
 import { getDatabase, formatDateKey, formatTimestamp } from "./db"
-import type { Entry, TextRevision, DaySummary, Mood } from "./types"
+import type { Entry, TextRevision, DaySummary, Mood, YearMoodCountRow } from "./types"
 
 // ==================== TEXT ENTRIES ====================
 
@@ -208,6 +208,42 @@ export async function listRevisions(entryId: number): Promise<TextRevision[]> {
   )
 
   return revisions
+}
+
+// ==================== MOOD INSIGHTS ====================
+
+export async function listYearsWithMood(): Promise<string[]> {
+  const db = await getDatabase()
+
+  const years = await db.getAllAsync<{ year: string }>(
+    `SELECT DISTINCT substr(dateKey, 1, 4) as year
+     FROM entries
+     WHERE deletedAt IS NULL AND mood IS NOT NULL
+     ORDER BY year DESC`
+  )
+
+  return years.map((y) => y.year)
+}
+
+export async function getYearMoodCounts(year: string): Promise<YearMoodCountRow[]> {
+  const db = await getDatabase()
+
+  const rows = await db.getAllAsync<YearMoodCountRow>(
+    `SELECT
+        substr(dateKey, 1, 4) as year,
+        substr(dateKey, 6, 2) as month,
+        mood as mood,
+        COUNT(*) as count
+     FROM entries
+     WHERE deletedAt IS NULL
+       AND mood IS NOT NULL
+       AND substr(dateKey, 1, 4) = ?
+     GROUP BY year, month, mood
+     ORDER BY month ASC`,
+    [year]
+  )
+
+  return rows
 }
 
 // ==================== DELETE ====================

@@ -13,6 +13,8 @@ import {
   FloatingActionButton,
   BottomSheet,
   SecondaryButton,
+  TextEditorSheet,
+  useToast,
 } from "../../src/ui"
 import { useVoicePlayer } from "../../src/hooks/useVoicePlayer"
 import {
@@ -20,17 +22,20 @@ import {
   formatDisplayDate,
   formatDisplayTime,
   deleteEntry,
+  updateTextEntry,
 } from "../../src/data"
 import type { Entry } from "../../src/data/types"
 
 export default function DayDetailScreen() {
   const theme = useTheme()
+  const toast = useToast()
   const params = useLocalSearchParams()
   const dateKey = params.dateKey as string
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null)
+  const [editEntry, setEditEntry] = useState<Entry | null>(null)
 
   useEffect(() => {
     if (dateKey) {
@@ -88,7 +93,9 @@ export default function DayDetailScreen() {
                 {
                   label: "Edit",
                   icon: "edit",
-                  onPress: () => {},
+                  onPress: () => {
+                    setEditEntry(menuEntry)
+                  },
                 },
                 {
                   label: "View History",
@@ -110,6 +117,19 @@ export default function DayDetailScreen() {
             },
           },
         ]}
+      />
+
+      <TextEditorSheet
+        visible={!!editEntry}
+        title="Edit Entry"
+        initialValue={editEntry?.textContent || ""}
+        onClose={() => setEditEntry(null)}
+        onSave={async (nextText) => {
+          if (!editEntry) return
+          await updateTextEntry(editEntry.id, nextText)
+          await loadEntries()
+          toast.showToast({title: "Saved", message: "Entry updated"})
+        }}
       />
       <View style={$container}>
         <AppHeader
