@@ -8,6 +8,7 @@ interface TextAreaCardProps {
   placeholder?: string;
   minHeight?: number;
   footerRight?: React.ReactNode;
+  inputAccessoryViewID?: string;
 }
 
 export function TextAreaCard({
@@ -16,6 +17,7 @@ export function TextAreaCard({
   placeholder = "One line is enough… or more if you need.",
   minHeight = 280,
   footerRight,
+  inputAccessoryViewID,
 }: TextAreaCardProps) {
   const theme = useTheme();
 
@@ -51,6 +53,7 @@ export function TextAreaCard({
         placeholderTextColor={$placeholderColor}
         multiline
         textAlignVertical="top"
+        inputAccessoryViewID={inputAccessoryViewID}
       />
 
       {footerRight && (

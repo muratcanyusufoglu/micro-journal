@@ -1,7 +1,13 @@
+import {MaterialIcons} from "@expo/vector-icons";
 import {router} from "expo-router";
 import React, {useEffect, useState} from "react";
 import {
   Alert,
+  InputAccessoryView,
+  Keyboard,
+  KeyboardEvent,
+  Platform,
+  Pressable,
   ScrollView,
   Text,
   TextStyle,
@@ -45,12 +51,42 @@ export default function TodayScreen() {
   const [mood, setMood] = useState<Mood | null>(null);
   const [todayEntries, setTodayEntries] = useState<Entry[]>([]);
   const [dateKey, setDateKey] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const voiceRecorder = useVoiceRecorder();
   const photoPicker = usePhotoPicker();
+  const saveAccessoryId = "oneline-save-accessory";
+  const isIOS = (Platform.OS as string) === "ios";
 
   useEffect(() => {
     loadTodayEntries();
+  }, []);
+
+  useEffect(() => {
+    function onKeyboardShow(e: KeyboardEvent) {
+      setIsKeyboardVisible(true);
+      if (!isIOS) setKeyboardHeight(e.endCoordinates.height);
+    }
+
+    function onKeyboardHide() {
+      setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
+    }
+
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      onKeyboardShow
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      onKeyboardHide
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   async function loadTodayEntries() {
@@ -171,6 +207,8 @@ export default function TodayScreen() {
 
   const hasContent =
     text.trim() || voiceRecorder.recordedUri || photoPicker.photos.length > 0;
+  const isAndroidKeyboardVisible =
+    !isIOS && isKeyboardVisible && keyboardHeight > 0;
 
   const $container: ViewStyle = {
     flex: 1,
@@ -220,6 +258,44 @@ export default function TodayScreen() {
     padding: theme.spacing.md,
     paddingBottom: theme.spacing.xl,
     backgroundColor: `${theme.colors.bgPrimary}F0`,
+  };
+
+  const $keyboardSaveWrap: ViewStyle = {
+    position: "absolute",
+    left: theme.spacing.md,
+    right: theme.spacing.md,
+    bottom: keyboardHeight,
+    alignItems: "flex-end",
+  };
+
+  const $keyboardSaveButton: ViewStyle = {
+    height: 44,
+    minWidth: 108,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: 22,
+    backgroundColor: theme.colors.bgSurface,
+    borderWidth: 1,
+    borderColor: theme.colors.borderCard,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    ...theme.shadows.soft,
+  };
+
+  const $keyboardSaveText: TextStyle = {
+    fontSize: theme.typography.body,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  };
+
+  const $accessoryWrap: ViewStyle = {
+    backgroundColor: `${theme.colors.bgPrimary}F0`,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSoft,
+    alignItems: "flex-end",
   };
 
   const $todaySection: ViewStyle = {
@@ -290,6 +366,7 @@ export default function TodayScreen() {
           <TextAreaCard
             value={text}
             onChangeText={setText}
+            inputAccessoryViewID={isIOS ? saveAccessoryId : undefined}
             footerRight={<MoodRibbonPicker value={mood} onChange={setMood} />}
           />
 
@@ -393,6 +470,56 @@ export default function TodayScreen() {
             disabled={!hasContent}
           />
         </View>
+
+        {isAndroidKeyboardVisible && (
+          <View pointerEvents="box-none" style={$keyboardSaveWrap}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Save entry"
+              onPress={handleAddToToday}
+              disabled={!hasContent}
+              style={({pressed}) => [
+                $keyboardSaveButton,
+                {
+                  opacity: !hasContent ? 0.45 : pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="check"
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={$keyboardSaveText}>Save</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {isIOS && isKeyboardVisible && (
+          <InputAccessoryView nativeID={saveAccessoryId}>
+            <View style={$accessoryWrap}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Save entry"
+                onPress={handleAddToToday}
+                disabled={!hasContent}
+                style={({pressed}) => [
+                  $keyboardSaveButton,
+                  {
+                    opacity: !hasContent ? 0.45 : pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name="check"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                />
+                <Text style={$keyboardSaveText}>Save</Text>
+              </Pressable>
+            </View>
+          </InputAccessoryView>
+        )}
       </View>
     </Screen>
   );

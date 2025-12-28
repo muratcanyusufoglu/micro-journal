@@ -1,4 +1,10 @@
-import React, {createContext, useContext, useMemo, useRef, useState} from "react";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Animated,
   Pressable,
@@ -105,7 +111,7 @@ export function ToastProvider({children}: ToastProviderProps) {
   const $toastWrap: StyleProp<ViewStyle> = [
     $toastWrapBase,
     {
-      paddingBottom: Math.max(insets.bottom, theme.spacing.md),
+      paddingTop: Math.max(insets.top, theme.spacing.md),
       paddingHorizontal: theme.spacing.md,
     },
   ];
@@ -124,7 +130,9 @@ export function ToastProvider({children}: ToastProviderProps) {
     $badgeBase,
     {
       backgroundColor:
-        toast?.variant === "error" ? theme.colors.dangerSoft : theme.colors.successSoft,
+        toast?.variant === "error"
+          ? theme.colors.dangerSoft
+          : theme.colors.successSoft,
       borderRadius: theme.radius.iconButton,
     },
   ];
@@ -196,7 +204,7 @@ const $toastWrapBase: ViewStyle = {
   position: "absolute",
   left: 0,
   right: 0,
-  bottom: 0,
+  top: 0,
   alignItems: "center",
 };
 
@@ -230,5 +238,3 @@ const $titleBase: TextStyle = {
 const $messageBase: TextStyle = {
   marginTop: 2,
 };
-
-
