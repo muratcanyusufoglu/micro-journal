@@ -24,6 +24,10 @@ export default function SettingsScreen() {
     router.push("/theme-selector");
   }
 
+  function handleBackup() {
+    router.push("/backup");
+  }
+
   function handleYearlyMood() {
     router.push("/yearly-mood");
   }
@@ -199,6 +203,39 @@ export default function SettingsScreen() {
                   <Text style={$rowSubtitle}>
                     {getThemeLabel(theme.currentTheme)}
                   </Text>
+                </View>
+              </View>
+
+              <View style={$rowRight}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({pressed}) => [
+                $row,
+                $rowBorder,
+                {
+                  backgroundColor: pressed
+                    ? `${theme.colors.textPrimary}05`
+                    : "transparent",
+                },
+              ]}
+              onPress={handleBackup}
+            >
+              <View style={$rowLeft}>
+                <MaterialIcons
+                  name="backup"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+                <View>
+                  <Text style={$rowTitle}>Backup & Restore</Text>
+                  <Text style={$rowSubtitle}>Export ZIP (with media), import soon</Text>
                 </View>
               </View>
 

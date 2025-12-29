@@ -105,6 +105,22 @@ export async function listEntriesByDate(dateKey: string): Promise<Entry[]> {
   return entries
 }
 
+export async function listEntriesByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<Entry[]> {
+  const db = await getDatabase()
+
+  const entries = await db.getAllAsync<Entry>(
+    `SELECT * FROM entries
+     WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL
+     ORDER BY dateKey ASC, createdAt ASC`,
+    [startDate, endDate]
+  )
+
+  return entries
+}
+
 export async function listAllEntries(limit: number = 30, offset: number = 0): Promise<Entry[]> {
   const db = await getDatabase()
 
@@ -205,6 +221,26 @@ export async function listRevisions(entryId: number): Promise<TextRevision[]> {
      WHERE entryId = ?
      ORDER BY createdAt DESC`,
     [entryId]
+  )
+
+  return revisions
+}
+
+export async function listRevisionsByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<TextRevision[]> {
+  const db = await getDatabase()
+
+  const revisions = await db.getAllAsync<TextRevision>(
+    `SELECT tr.*
+     FROM text_revisions tr
+     JOIN entries e ON e.id = tr.entryId
+     WHERE e.deletedAt IS NULL
+       AND e.dateKey >= ?
+       AND e.dateKey <= ?
+     ORDER BY tr.createdAt DESC`,
+    [startDate, endDate]
   )
 
   return revisions
