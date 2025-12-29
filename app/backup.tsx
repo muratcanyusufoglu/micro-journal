@@ -1,10 +1,10 @@
 import React, {useMemo, useState} from "react";
-import {ScrollView, Switch, Text, TextInput, TextStyle, View, ViewStyle} from "react-native";
+import {ScrollView, Share, Switch, Text, TextInput, TextStyle, View, ViewStyle} from "react-native";
 import {router} from "expo-router";
 import * as FileSystem from "expo-file-system";
 import {AppHeader, Card, PrimaryButton, Screen, SecondaryButton, useToast} from "../src/ui";
 import {useTheme} from "../src/theme/ThemeProvider";
-import {exportEntriesToZip} from "../src/data";
+import {exportEntries, type ExportFormat} from "../src/data";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -23,6 +23,7 @@ export default function BackupScreen() {
   const [endDate, setEndDate] = useState(today());
   const [includeMedia, setIncludeMedia] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [format, setFormat] = useState<ExportFormat>("zip");
 
   const $container: ViewStyle = {flex: 1};
   const $content: ViewStyle = {
@@ -53,6 +54,28 @@ export default function BackupScreen() {
     justifyContent: "space-between",
   };
 
+  const $chipRow: ViewStyle = {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+  };
+
+  const $chip: ViewStyle = {
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 110,
+  };
+
+  const $chipText: TextStyle = {
+    fontSize: theme.typography.small,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  };
+
   const $sectionTitle: TextStyle = {
     fontSize: theme.typography.body,
     fontWeight: "700",
@@ -69,15 +92,24 @@ export default function BackupScreen() {
   async function handleExport() {
     setIsExporting(true);
     try {
-      const result = await exportEntriesToZip({
+      const result = await exportEntries({
         startDate,
         endDate,
         includeMedia,
+        format,
       });
 
       toast.showToast({
-        title: "Exported",
+        title: `Exported (${result.format})`,
         message: `${result.entryCount} entries, ${result.mediaCount} files\nSaved to: ${result.path}`,
+      });
+
+      // Share / Save to Files
+      const fileUri = result.path.startsWith("file://") ? result.path : `file://${result.path}`;
+      await Share.share({
+        url: fileUri,
+        message: `Backup exported (${result.format})`,
+        title: "Export complete",
       });
     } catch (error) {
       console.error("Export failed:", error);
@@ -106,6 +138,44 @@ export default function BackupScreen() {
         <ScrollView contentContainerStyle={$content}>
           <Card>
             <Text style={$sectionTitle}>Export</Text>
+
+            <Text style={$label}>Format</Text>
+            <View style={$chipRow}>
+              {(["zip", "notion", "obsidian"] as ExportFormat[]).map((f) => {
+                const isActive = format === f;
+                const label =
+                  f === "zip" ? "Raw ZIP" : f === "notion" ? "Notion (CSV)" : "Obsidian (MD)";
+                return (
+                  <Text
+                    key={f}
+                    onPress={() => setFormat(f)}
+                    style={({pressed}) => [
+                      $chip,
+                      {
+                        backgroundColor: isActive
+                          ? theme.colors.accentPrimary
+                          : theme.colors.bgSurface,
+                        borderColor: isActive
+                          ? theme.colors.accentDeep
+                          : theme.colors.borderCard,
+                        opacity: pressed ? 0.8 : 1,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        $chipText,
+                        {color: isActive ? theme.colors.textPrimary : theme.colors.textSecondary},
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Text>
+                );
+              })}
+            </View>
+
+            <View style={{height: theme.spacing.md}} />
 
             <Text style={$label}>Start date (YYYY-MM-DD)</Text>
             <TextInput
