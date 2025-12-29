@@ -32,8 +32,9 @@ export interface YearMoodCounts {
 interface MoodNetworkGraphProps {
   year: string;
   data: YearMoodCounts;
-  onPressMonth?: (month: string, total: number) => void;
+  onPressMonth?: (month: string, total: number, breakdown: {mood: Mood; count: number}[]) => void;
   onPressMood?: (month: string, mood: Mood, count: number) => void;
+  legendPosition?: "top" | "bottom";
 }
 
 function formatMonthLabel(month: string): string {
@@ -88,6 +89,7 @@ export function MoodNetworkGraph({
   data,
   onPressMonth,
   onPressMood,
+  legendPosition = "bottom",
 }: MoodNetworkGraphProps) {
   const theme = useTheme();
   const {width} = useWindowDimensions();
@@ -112,30 +114,23 @@ export function MoodNetworkGraph({
   );
 
   const layout = useMemo(() => {
-    const paddingX = theme.spacing.md;
-    const paddingTop = theme.spacing.md;
-    const rootY = paddingTop + 18;
     const rootX = width / 2;
-
-    const cols = 3;
-    const rows = 4;
-    const colW = (width - paddingX * 2) / cols;
-    const monthStartY = rootY + 64;
-    const rowH = 150;
+    const rootY = 80;
+    const ringCenterY = 220;
+    const radius = Math.min(width * 0.38, 180);
 
     const monthPositions: Record<string, {x: number; y: number}> = {};
     months.forEach((m, i) => {
-      const r = Math.floor(i / cols);
-      const c = i % cols;
+      const angle = (2 * Math.PI * i) / months.length - Math.PI / 2; // start at top
       monthPositions[m] = {
-        x: paddingX + c * colW + colW / 2,
-        y: monthStartY + r * rowH,
+        x: rootX + radius * Math.cos(angle),
+        y: ringCenterY + radius * Math.sin(angle),
       };
     });
 
-    const height = monthStartY + rows * rowH + 40;
-    return {rootX, rootY, monthPositions, height, colW};
-  }, [months, theme.spacing.md, width]);
+    const height = ringCenterY + radius + 80;
+    return {rootX, rootY, ringCenterY, radius, monthPositions, height};
+  }, [months, width]);
 
   const $canvas: ViewStyle = {
     width: "100%",
@@ -144,17 +139,17 @@ export function MoodNetworkGraph({
 
   const $rootNode: ViewStyle = {
     position: "absolute",
-    left: layout.rootX - 34,
-    top: layout.rootY - 34,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    left: layout.rootX - 36,
+    top: layout.rootY - 36,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: theme.colors.bgSurface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.borderCard,
     alignItems: "center",
     justifyContent: "center",
-    ...theme.shadows.soft,
+    ...theme.shadows.medium,
   };
 
   const $rootText: TextStyle = {
@@ -166,37 +161,54 @@ export function MoodNetworkGraph({
 
   const $monthNodeBase: ViewStyle = {
     position: "absolute",
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: theme.colors.bgSurface,
-    borderWidth: 1,
-    borderColor: theme.colors.borderCard,
-    alignItems: "center",
-    justifyContent: "center",
-    ...theme.shadows.soft,
-  };
-
-  const $monthText: TextStyle = {
-    fontSize: theme.typography.micro,
-    fontWeight: "800",
-    color: theme.colors.textPrimary,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  };
-
-  const $moodNodeBase: ViewStyle = {
-    position: "absolute",
-    borderWidth: 1,
+    borderWidth: 1.25,
     borderColor: theme.colors.borderSoft,
     alignItems: "center",
     justifyContent: "center",
+    ...theme.shadows.soft,
+    overflow: "hidden",
   };
 
-  const $moodLabel: TextStyle = {
-    fontSize: 10,
+  const $monthText: TextStyle = {
+    fontSize: theme.typography.small,
     fontWeight: "800",
     color: theme.colors.textPrimary,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  };
+
+  const $legendRow: ViewStyle = {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.md,
+    justifyContent: "center",
+    paddingHorizontal: theme.spacing.md,
+  };
+
+  const $legendItem: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  };
+
+  const $legendDot: ViewStyle = {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSoft,
+  };
+
+  const $legendText: TextStyle = {
+    fontSize: theme.typography.micro,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.2,
   };
 
   const lines: React.ReactNode[] = [];
@@ -211,6 +223,7 @@ export function MoodNetworkGraph({
       .sort((a, b) => b.count - a.count);
 
     const total = moodEntries.reduce((sum, x) => sum + x.count, 0);
+    const opacity = total === 0 ? 0.35 : 1;
 
     // Root -> month line
     lines.push(
@@ -218,122 +231,99 @@ export function MoodNetworkGraph({
         key={`line-root-${month}`}
         style={makeLineStyle(
           layout.rootX,
-          layout.rootY + 34,
+          layout.rootY + 36,
           pos.x,
-          pos.y - 23,
+          pos.y - 32,
           theme.colors.borderSoft
         )}
       />
     );
 
-    // Month node
+    // Month node (single, stacked fill)
     nodes.push(
       <Pressable
         key={`month-${month}`}
         accessibilityRole="button"
         accessibilityLabel={`${formatMonthLabel(month)} total ${total}`}
-        onPress={() => onPressMonth?.(month, total)}
+        onPress={() => onPressMonth?.(month, total, moodEntries)}
         style={({pressed}) => [
           $monthNodeBase,
           {
-            left: pos.x - 23,
-            top: pos.y - 23,
-            opacity: pressed ? 0.75 : 1,
+            left: pos.x - 38,
+            top: pos.y - 38,
+            opacity: pressed ? 0.75 : opacity,
           },
         ]}
       >
+        {total > 0 && (
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              borderRadius: 22,
+              overflow: "hidden",
+              backgroundColor: theme.colors.bgSurface,
+              borderWidth: 0,
+              flexDirection: "row",
+            }}
+          >
+            {moodEntries.map((item) => {
+              const meta = MOOD_META[item.mood];
+              const pct = total > 0 ? item.count / total : 0;
+              const widthPct = `${Math.max(pct * 100, 8)}%`; // min width for visibility
+              return (
+                <View
+                  key={`${month}-${item.mood}`}
+                  style={{
+                    width: widthPct,
+                    backgroundColor: theme.colors[meta.colorKey],
+                    opacity: 1,
+                  }}
+                />
+              );
+            })}
+          </View>
+        )}
+
         <Text style={$monthText}>{formatMonthLabel(month)}</Text>
+        <Text
+          style={{
+            fontSize: theme.typography.micro,
+            fontWeight: "700",
+            color: theme.colors.textPrimary,
+            marginTop: 2,
+          }}
+        >
+          {total}
+        </Text>
       </Pressable>
     );
+  });
 
-    // Mood child nodes (stacked)
-    const maxVisible = 6; // keep it readable; remaining collapsed into +N
-    const visible = moodEntries.slice(0, maxVisible);
-    const remaining = moodEntries.slice(maxVisible);
-
-    const moodStartY = pos.y + 46;
-    const spacingY = 28;
-
-    visible.forEach((item, idx) => {
-      const size = clamp(12 + item.count * 2, 14, 26);
-      const x = pos.x;
-      const y = moodStartY + idx * spacingY;
-      const meta = MOOD_META[item.mood];
-      const bg = theme.colors[meta.colorKey];
-
-      lines.push(
-        <View
-          key={`line-${month}-${item.mood}`}
-          style={makeLineStyle(
-            pos.x,
-            pos.y + 23,
-            x,
-            y - size / 2,
-            theme.colors.borderSoft
-          )}
-        />
-      );
-
-      nodes.push(
-        <Pressable
-          key={`mood-${month}-${item.mood}`}
-          accessibilityRole="button"
-          accessibilityLabel={`${formatMonthLabel(month)} ${meta.label} ${item.count}`}
-          onPress={() => onPressMood?.(month, item.mood, item.count)}
-          style={({pressed}) => [
-            $moodNodeBase,
-            {
-              left: x - size / 2,
-              top: y - size / 2,
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: bg,
-              opacity: pressed ? 0.75 : 1,
-            },
-          ]}
-        >
-          <Text style={$moodLabel}>{meta.label.slice(0, 1)}</Text>
-        </Pressable>
-      );
-    });
-
-    if (remaining.length > 0) {
-      const countHidden = remaining.length;
-      const size = 18;
-      const x = pos.x;
-      const y = moodStartY + visible.length * spacingY;
-
-      nodes.push(
-        <View
-          key={`mood-more-${month}`}
-          style={[
-            $moodNodeBase,
-            {
-              left: x - size / 2,
-              top: y - size / 2,
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              backgroundColor: theme.colors.bgSubtle,
-            },
-          ]}
-        >
-          <Text style={[$moodLabel, {color: theme.colors.textSecondary}]}>
-            +{countHidden}
-          </Text>
-        </View>
-      );
-    }
+  const legend = (Object.keys(MOOD_META) as Mood[]).map((mood) => {
+    const meta = MOOD_META[mood];
+    return (
+      <View key={mood} style={$legendItem}>
+        <View style={[$legendDot, {backgroundColor: theme.colors[meta.colorKey]}]} />
+        <Text style={$legendText}>{meta.label}</Text>
+      </View>
+    );
   });
 
   return (
-    <View style={$canvas}>
-      {lines}
-      <View style={$rootNode} accessibilityLabel={`Year ${year}`}>
-        <Text style={$rootText}>{year}</Text>
+    <View>
+      {legendPosition === "top" && <View style={$legendRow}>{legend}</View>}
+      <View style={$canvas}>
+        {lines}
+        <View style={$rootNode} accessibilityLabel={`Year ${year}`}>
+          <Text style={$rootText}>{year}</Text>
+        </View>
+        {nodes}
       </View>
-      {nodes}
+      {legendPosition === "bottom" && <View style={$legendRow}>{legend}</View>}
     </View>
   );
 }

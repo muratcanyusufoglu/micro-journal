@@ -2,8 +2,8 @@ import React, {useEffect, useMemo, useState} from "react";
 import {ActivityIndicator, Pressable, ScrollView, Text, TextStyle, View, ViewStyle} from "react-native";
 import {router} from "expo-router";
 import {useTheme} from "../src/theme/ThemeProvider";
-import {getYearMoodCounts, listYearsWithMood} from "../src/data";
-import type {Mood, YearMoodCountRow} from "../src/data/types";
+import {getYearMoodCounts, listEntriesByMonth, listYearsWithMood} from "../src/data";
+import type {Entry, Mood, YearMoodCountRow} from "../src/data/types";
 import {AppHeader, MoodNetworkGraph, Screen, useToast} from "../src/ui";
 
 function buildYearData(rows: YearMoodCountRow[]): Record<string, Partial<Record<Mood, number>>> {
@@ -24,6 +24,9 @@ export default function YearlyMoodScreen() {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [rows, setRows] = useState<YearMoodCountRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [monthEntries, setMonthEntries] = useState<Entry[]>([]);
+  const [isLoadingMonth, setIsLoadingMonth] = useState(false);
 
   useEffect(() => {
     loadYears();
@@ -50,8 +53,20 @@ export default function YearlyMoodScreen() {
     try {
       const next = await getYearMoodCounts(year);
       setRows(next);
+      setSelectedMonth(null);
+      setMonthEntries([]);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadMonthEntries(year: string, month: string) {
+    setIsLoadingMonth(true);
+    try {
+      const entries = await listEntriesByMonth(year, month);
+      setMonthEntries(entries);
+    } finally {
+      setIsLoadingMonth(false);
     }
   }
 
@@ -108,6 +123,24 @@ export default function YearlyMoodScreen() {
     fontSize: theme.typography.small,
     color: theme.colors.textSecondary,
     lineHeight: 18,
+  };
+
+  const $listItem: ViewStyle = {
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSoft,
+  };
+
+  const $listTitle: TextStyle = {
+    fontSize: theme.typography.body,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  };
+
+  const $listMeta: TextStyle = {
+    fontSize: theme.typography.micro,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   };
 
   return (
@@ -177,11 +210,22 @@ export default function YearlyMoodScreen() {
                 <MoodNetworkGraph
                   year={selectedYear}
                   data={data}
-                  onPressMonth={(month, total) => {
-                    toast.showToast({
-                      title: `${selectedYear}-${month}`,
-                      message: total > 0 ? `${total} mood-tagged entries` : "No mood entries",
-                    });
+                  legendPosition="top"
+                  onPressMonth={(month, total, breakdown) => {
+                    setSelectedMonth(month);
+                    loadMonthEntries(selectedYear, month);
+                    if (total > 0 && breakdown.length > 0) {
+                      const desc = breakdown.map((b) => `${b.mood}:${b.count}`).join(" • ");
+                      toast.showToast({
+                        title: `${selectedYear}-${month}`,
+                        message: desc,
+                      });
+                    } else {
+                      toast.showToast({
+                        title: `${selectedYear}-${month}`,
+                        message: total > 0 ? `${total} entries` : "No mood entries",
+                      });
+                    }
                   }}
                   onPressMood={(month, mood, count) => {
                     toast.showToast({
@@ -190,6 +234,36 @@ export default function YearlyMoodScreen() {
                     });
                   }}
                 />
+              )}
+            </View>
+          )}
+
+          {!!selectedMonth && (
+            <View>
+              <Text
+                style={{
+                  fontSize: theme.typography.body,
+                  fontWeight: "700",
+                  color: theme.colors.textPrimary,
+                  marginBottom: theme.spacing.sm,
+                }}
+              >
+                {`${selectedYear}-${selectedMonth}`} entries
+              </Text>
+              {isLoadingMonth ? (
+                <ActivityIndicator color={theme.colors.textSecondary} />
+              ) : monthEntries.length === 0 ? (
+                <Text style={$emptyText}>No entries for this month.</Text>
+              ) : (
+                monthEntries.map((entry) => (
+                  <View key={entry.id} style={$listItem}>
+                    <Text style={$listTitle}>{entry.textContent || "(no text)"}</Text>
+                    <Text style={$listMeta}>
+                      {entry.dateKey} · {entry.type}
+                      {entry.mood ? ` · ${entry.mood}` : ""}
+                    </Text>
+                  </View>
+                ))
               )}
             </View>
           )}

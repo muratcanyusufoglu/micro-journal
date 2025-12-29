@@ -121,6 +121,25 @@ export async function listEntriesByDateRange(
   return entries
 }
 
+export async function listEntriesByMonth(
+  year: string,
+  month: string
+): Promise<Entry[]> {
+  const db = await getDatabase()
+  const start = `${year}-${month}-01`
+  const end = `${year}-${month}-31`
+
+  const entries = await db.getAllAsync<Entry>(
+    `SELECT * FROM entries
+     WHERE dateKey >= ? AND dateKey <= ?
+       AND deletedAt IS NULL
+     ORDER BY createdAt ASC`,
+    [start, end]
+  )
+
+  return entries
+}
+
 export async function listAllEntries(limit: number = 30, offset: number = 0): Promise<Entry[]> {
   const db = await getDatabase()
 
