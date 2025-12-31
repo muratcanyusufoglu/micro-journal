@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { View, Text, Pressable, ScrollView, ViewStyle, TextStyle, ActivityIndicator, Alert } from "react-native"
+import { View, Text, Pressable, ScrollView, ViewStyle, TextStyle, ActivityIndicator, Alert, TextInput } from "react-native"
 import { router } from "expo-router"
 import { useTheme } from "../src/theme/ThemeProvider"
 import { 
@@ -50,6 +50,7 @@ export default function CalendarScreen() {
   const [totalCount, setTotalCount] = useState(0)
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null)
   const [editEntry, setEditEntry] = useState<Entry | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const PAGE_SIZE = 30
 
   useEffect(() => {
@@ -208,14 +209,45 @@ export default function CalendarScreen() {
     marginTop: theme.spacing.xl,
   }
 
-  // Group entries by date
-  const groupedEntries = allEntries.reduce((acc, entry) => {
+  const $searchBox: ViewStyle = {
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderCard,
+    borderRadius: theme.radius.button,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.bgSurface,
+  }
+
+  const $searchInput: TextStyle = {
+    fontSize: theme.typography.body,
+    color: theme.colors.textPrimary,
+  }
+
+  const matchesSearch = (entry: Entry) => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return true
+    return (
+      (entry.textContent || "").toLowerCase().includes(q) ||
+      (entry.photoTitle || "").toLowerCase().includes(q) ||
+      (entry.mood || "").toLowerCase().includes(q)
+    )
+  }
+
+  const filteredEntries = allEntries.filter(matchesSearch)
+
+  // Group filtered entries by date
+  const groupedEntries = filteredEntries.reduce((acc, entry) => {
     if (!acc[entry.dateKey]) {
       acc[entry.dateKey] = []
     }
     acc[entry.dateKey].push(entry)
     return acc
   }, {} as Record<string, Entry[]>)
+
+  const dayEntries = selectedDay
+    ? filteredEntries.filter((e) => e.dateKey === selectedDay)
+    : []
 
   const $header: ViewStyle = {
     flexDirection: "row",
@@ -282,10 +314,11 @@ export default function CalendarScreen() {
         visible={!!editEntry}
         title="Edit Entry"
         initialValue={editEntry?.textContent || ""}
+        initialMood={editEntry?.mood || null}
         onClose={() => setEditEntry(null)}
-        onSave={async (nextText) => {
+        onSave={async (nextText, nextMood) => {
           if (!editEntry) return
-          await updateTextEntry(editEntry.id, nextText)
+          await updateTextEntry(editEntry.id, nextText, nextMood ?? null)
           await loadAllEntries(true)
           await loadMonth()
           toast.showToast({title: "Saved", message: "Entry updated"})
@@ -331,6 +364,16 @@ export default function CalendarScreen() {
         </View>
         
         <ScrollView contentContainerStyle={$scrollContent}>
+          <View style={$searchBox}>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search entries (text, title, mood)"
+              placeholderTextColor={theme.colors.textPlaceholder}
+              style={$searchInput}
+            />
+          </View>
+
           <CalendarMonth
             month={monthNames[currentDate.getMonth()]}
             year={currentDate.getFullYear()}
@@ -340,17 +383,72 @@ export default function CalendarScreen() {
           />
 
           {selectedDay ? (
-            // Show day summary when a day is selected
-            daySummary && (
-              <DaySummaryPanel
-                date={formatShortDate(selectedDay)}
-                itemCount={daySummary.itemCount}
-                previewText={daySummary.previewText || undefined}
-                hasVoice={daySummary.hasVoice}
-                hasPhoto={daySummary.hasPhoto}
-                onViewDetails={handleViewDetails}
-              />
-            )
+            <>
+              {daySummary && (
+                <DaySummaryPanel
+                  date={formatShortDate(selectedDay)}
+                  itemCount={daySummary.itemCount}
+                  previewText={daySummary.previewText || undefined}
+                  hasVoice={daySummary.hasVoice}
+                  hasPhoto={daySummary.hasPhoto}
+                  onViewDetails={handleViewDetails}
+                />
+              )}
+
+              {dayEntries.length === 0 ? (
+                <Text style={$emptyText}>No entries match your search.</Text>
+              ) : (
+                <View style={$allEntriesSection}>
+                  {dayEntries.map((entry) => {
+                    if (entry.type === "text") {
+                      return (
+                        <TextNoteCard
+                          key={entry.id}
+                          text={entry.textContent || ""}
+                          timestamp={formatDisplayTime(entry.createdAt)}
+                          isEdited={entry.isEdited === 1}
+                          mood={entry.mood}
+                          onMenuPress={() => handleEntryMenu(entry)}
+                        />
+                      )
+                    }
+                    if (entry.type === "voice") {
+                      return (
+                        <VoiceNoteCardWrapper
+                          key={entry.id}
+                          entry={entry}
+                          onMenuPress={() => handleEntryMenu(entry)}
+                        />
+                      )
+                    }
+                    if (entry.type === "photo") {
+                      if (entry.textContent && entry.textContent.trim().length > 0) {
+                        return (
+                          <PhotoTextNoteCard
+                            key={entry.id}
+                            photoUri={entry.photoUri || ""}
+                            text={entry.textContent}
+                            timestamp={formatDisplayTime(entry.createdAt)}
+                            mood={entry.mood}
+                            onMenuPress={() => handleEntryMenu(entry)}
+                          />
+                        )
+                      }
+                      return (
+                        <PhotoNoteCard
+                          key={entry.id}
+                          photoUri={entry.photoUri || ""}
+                          title={entry.photoTitle || undefined}
+                          timestamp={formatDisplayTime(entry.createdAt)}
+                          onMenuPress={() => handleEntryMenu(entry)}
+                        />
+                      )
+                    }
+                    return null
+                  })}
+                </View>
+              )}
+            </>
           ) : (
             // Show all entries when no day is selected
             <View style={$allEntriesSection}>
@@ -358,7 +456,7 @@ export default function CalendarScreen() {
                 <Text style={$sectionTitle}>All Entries ({totalCount})</Text>
               </View>
 
-              {allEntries.length === 0 ? (
+              {filteredEntries.length === 0 ? (
                 <Text style={$emptyText}>No entries yet. Start journaling today!</Text>
               ) : (
                 <>

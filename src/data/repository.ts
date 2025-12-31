@@ -20,7 +20,7 @@ export async function addTextEntry(
   return result.lastInsertRowId
 }
 
-export async function updateTextEntry(entryId: number, newText: string): Promise<void> {
+export async function updateTextEntry(entryId: number, newText: string, mood: Mood | null = null): Promise<void> {
   const db = await getDatabase()
   const now = formatTimestamp(new Date())
 
@@ -44,9 +44,9 @@ export async function updateTextEntry(entryId: number, newText: string): Promise
   // Update entry with new text
   await db.runAsync(
     `UPDATE entries
-     SET textContent = ?, updatedAt = ?, isEdited = 1
+     SET textContent = ?, updatedAt = ?, isEdited = 1, mood = ?
      WHERE id = ?`,
-    [newText, now, entryId]
+    [newText, now, mood, entryId]
   )
 }
 

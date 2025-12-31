@@ -371,10 +371,11 @@ export default function TodayScreen() {
           visible={!!editEntry}
           title="Edit Entry"
           initialValue={editEntry?.textContent || ""}
+          initialMood={editEntry?.mood || null}
           onClose={() => setEditEntry(null)}
-          onSave={async (nextText) => {
+          onSave={async (nextText, nextMood) => {
             if (!editEntry) return;
-            await updateTextEntry(editEntry.id, nextText);
+            await updateTextEntry(editEntry.id, nextText, nextMood ?? null);
             await loadTodayEntries();
             toast.showToast({title: "Saved", message: "Entry updated"});
           }}

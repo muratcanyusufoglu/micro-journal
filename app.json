@@ -14,6 +14,7 @@
       "backgroundColor": "#F7F6F3"
     },
     "ios": {
+      "buildNumber": "2",
       "bundleIdentifier": "com.oneline.dailynotes",
       "supportsTablet": true
     },
