@@ -8,15 +8,40 @@
     "scheme": "oneline",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Private, offline-first daily journal with mood tracking. Write thoughts, record voice notes, attach photos. All data stays on your device. No accounts, no ads, completely free. Export to Notion, Obsidian & more.",
+    "keywords": [
+      "journal",
+      "diary",
+      "notes",
+      "mood",
+      "tracker",
+      "privacy",
+      "offline",
+      "writing",
+      "memories",
+      "reflection",
+      "wellness",
+      "mental health",
+      "personal",
+      "secure",
+      "local",
+      "export"
+    ],
     "splash": {
       "image": "./assets/images/dailysplash.png",
       "resizeMode": "cover",
       "backgroundColor": "#F7F6F3"
     },
     "ios": {
-      "buildNumber": "2",
+      "buildNumber": "3",
       "bundleIdentifier": "com.oneline.dailynotes",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "OneLine needs access to your photo library to attach photos to your journal entries.",
+        "NSPhotoLibraryAddUsageDescription": "OneLine needs permission to save photos to your library.",
+        "NSMicrophoneUsageDescription": "OneLine needs access to your microphone to record voice notes for your journal entries.",
+        "NSCameraUsageDescription": "OneLine needs access to your camera to take photos for your journal entries."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +52,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.oneline.dailynotes"
+      "package": "com.oneline.dailynotes",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",

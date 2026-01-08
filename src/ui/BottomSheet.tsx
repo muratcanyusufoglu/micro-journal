@@ -7,6 +7,8 @@ import {
   Animated,
   ViewStyle,
   TextStyle,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native"
 import { useTheme } from "../theme/ThemeProvider"
 
@@ -15,9 +17,10 @@ interface BottomSheetProps {
   title: string
   onClose: () => void
   children: React.ReactNode
+  keyboardOffset?: number
 }
 
-export function BottomSheet({ visible, title, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ visible, title, onClose, children, keyboardOffset = 0 }: BottomSheetProps) {
   const theme = useTheme()
   const slideAnim = useRef(new Animated.Value(0)).current
 
@@ -81,26 +84,36 @@ export function BottomSheet({ visible, title, onClose, children }: BottomSheetPr
       visible={visible}
       transparent
       animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      avoidKeyboard
       onRequestClose={onClose}
     >
       <Pressable style={$overlay} onPress={onClose}>
-        <Animated.View
-          style={[
-            $sheet,
-            {
-              transform: [{ translateY }],
-            },
-          ]}
-          onStartShouldSetResponder={() => true}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={keyboardOffset}
+          style={{width: "100%"}}
         >
-          <View style={$handle} />
-          <Text style={$title}>{title}</Text>
-          {children}
-        </Animated.View>
+          <Animated.View
+            style={[
+              $sheet,
+              {
+                transform: [{ translateY }],
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={$handle} />
+            <Text style={$title}>{title}</Text>
+            {children}
+          </Animated.View>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   )
 }
+
 
 
 
