@@ -36,6 +36,11 @@
       "buildNumber": "3",
       "bundleIdentifier": "com.oneline.dailynotes",
       "supportsTablet": true,
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.oneline.dailynotes"
+        ]
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "OneLine needs access to your photo library to attach photos to your journal entries.",
         "NSPhotoLibraryAddUsageDescription": "OneLine needs permission to save photos to your library.",
@@ -58,6 +63,29 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "android.intent.action.SEND",
+          "category": ["android.intent.category.DEFAULT"],
+          "data": [
+            {
+              "mimeType": "text/plain"
+            },
+            {
+              "mimeType": "image/*"
+            }
+          ]
+        },
+        {
+          "action": "android.intent.action.SEND_MULTIPLE",
+          "category": ["android.intent.category.DEFAULT"],
+          "data": [
+            {
+              "mimeType": "image/*"
+            }
+          ]
+        }
       ]
     },
     "web": {
@@ -78,7 +106,8 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "./plugins/withShareExtension.js"
     ],
     "experiments": {
       "typedRoutes": true,

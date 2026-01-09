@@ -47,3 +47,11 @@ export interface YearMoodCountRow {
   mood: Mood;
   count: number;
 }
+
+export interface ShareData {
+  text?: string;
+  url?: string;
+  imageUri?: string;
+  imageUris?: string[]; // Multiple images
+  type: "text" | "url" | "image" | "file";
+}

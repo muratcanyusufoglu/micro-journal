@@ -20,17 +20,20 @@ import {
   addVoiceEntry,
   deleteEntry,
   formatDisplayTime,
+  generateSingleEntryEmail,
   getTodayDateKey,
   listEntriesByDate,
   updateTextEntry,
 } from "../src/data";
 import type {Entry, Mood} from "../src/data/types";
+import {useEmailComposer} from "../src/hooks/useEmailComposer";
 import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
 import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
 import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {
   ActionSheet,
+  EmailComposerSheet,
   IconButton,
   MediaToolbar,
   MoodRibbonPicker,
@@ -58,6 +61,8 @@ export default function TodayScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null);
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const emailComposer = useEmailComposer();
 
   const voiceRecorder = useVoiceRecorder();
   const photoPicker = usePhotoPicker();
@@ -356,6 +361,14 @@ export default function TodayScreen() {
                 ]
               : []),
             {
+              label: "Send via Email",
+              icon: "email",
+              onPress: () => {
+                if (!menuEntry) return;
+                setShowEmailComposer(true);
+              },
+            },
+            {
               label: "Delete",
               icon: "delete-outline",
               variant: "destructive",
@@ -378,6 +391,46 @@ export default function TodayScreen() {
             await updateTextEntry(editEntry.id, nextText, nextMood ?? null);
             await loadTodayEntries();
             toast.showToast({title: "Saved", message: "Entry updated"});
+          }}
+        />
+
+        <EmailComposerSheet
+          visible={showEmailComposer}
+          onClose={() => {
+            setShowEmailComposer(false);
+            setMenuEntry(null);
+          }}
+          defaultBody={
+            menuEntry
+              ? generateSingleEntryEmail(menuEntry).body
+              : ""
+          }
+          defaultSubject={
+            menuEntry
+              ? generateSingleEntryEmail(menuEntry).subject
+              : ""
+          }
+          onSend={async (recipients, subject, body) => {
+            try {
+              await emailComposer.composeEmail({
+                recipients,
+                subject,
+                body,
+              });
+              setShowEmailComposer(false);
+              setMenuEntry(null);
+              toast.showToast({
+                title: "Email Opened",
+                message: "Email composer opened",
+              });
+            } catch (error) {
+              console.error("Error sending email:", error);
+              toast.showToast({
+                title: "Error",
+                message: "Failed to open email composer",
+                variant: "error",
+              });
+            }
           }}
         />
 

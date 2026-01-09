@@ -24,8 +24,16 @@ export default function SettingsScreen() {
     router.push("/theme-selector");
   }
 
+  function handleQuickCapture() {
+    router.push("/quick-capture");
+  }
+
   function handleBackup() {
     router.push("/backup");
+  }
+
+  function handleEmailSettings() {
+    router.push("/email-settings");
   }
 
   function handleYearlyMood() {
@@ -225,6 +233,39 @@ export default function SettingsScreen() {
                     : "transparent",
                 },
               ]}
+              onPress={handleQuickCapture}
+            >
+              <View style={$rowLeft}>
+                <MaterialIcons
+                  name="add-circle-outline"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+                <View>
+                  <Text style={$rowTitle}>Quick Capture</Text>
+                  <Text style={$rowSubtitle}>Fast note taking</Text>
+                </View>
+              </View>
+
+              <View style={$rowRight}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({pressed}) => [
+                $row,
+                $rowBorder,
+                {
+                  backgroundColor: pressed
+                    ? `${theme.colors.textPrimary}05`
+                    : "transparent",
+                },
+              ]}
               onPress={handleBackup}
             >
               <View style={$rowLeft}>
@@ -269,6 +310,39 @@ export default function SettingsScreen() {
                 <View>
                   <Text style={$rowTitle}>Yearly Mood</Text>
                   <Text style={$rowSubtitle}>See your feelings as a network</Text>
+                </View>
+              </View>
+
+              <View style={$rowRight}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({pressed}) => [
+                $row,
+                $rowBorder,
+                {
+                  backgroundColor: pressed
+                    ? `${theme.colors.textPrimary}05`
+                    : "transparent",
+                },
+              ]}
+              onPress={handleEmailSettings}
+            >
+              <View style={$rowLeft}>
+                <MaterialIcons
+                  name="email"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+                <View>
+                  <Text style={$rowTitle}>Email Integration</Text>
+                  <Text style={$rowSubtitle}>Send entries via email</Text>
                 </View>
               </View>
 
