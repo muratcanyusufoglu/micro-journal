@@ -6,9 +6,10 @@ import { useTheme } from "../theme/ThemeProvider"
 interface MediaToolbarProps {
   onMicPress: () => void
   onPhotoPress: () => void
+  onQRPress?: () => void
 }
 
-export function MediaToolbar({ onMicPress, onPhotoPress }: MediaToolbarProps) {
+export function MediaToolbar({ onMicPress, onPhotoPress, onQRPress }: MediaToolbarProps) {
   const theme = useTheme()
 
   const $container: ViewStyle = {
@@ -63,6 +64,24 @@ export function MediaToolbar({ onMicPress, onPhotoPress }: MediaToolbarProps) {
           color={theme.colors.textSecondary}
         />
       </Pressable>
+
+      {onQRPress && (
+        <Pressable
+          style={({ pressed }) => [
+            $button,
+            {
+              opacity: pressed ? 0.6 : 1,
+            },
+          ]}
+          onPress={onQRPress}
+        >
+          <MaterialIcons
+            name="qr-code-scanner"
+            size={24}
+            color={theme.colors.textSecondary}
+          />
+        </Pressable>
+      )}
     </View>
   )
 }

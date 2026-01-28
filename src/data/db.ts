@@ -57,6 +57,10 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
   if (!columnNames.has("mood")) {
     await database.execAsync(`ALTER TABLE entries ADD COLUMN mood TEXT;`);
   }
+
+  if (!columnNames.has("transcription")) {
+    await database.execAsync(`ALTER TABLE entries ADD COLUMN transcription TEXT;`);
+  }
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {

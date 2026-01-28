@@ -12,7 +12,7 @@ const path = require("path");
  * 1. Adds App Groups capability to main app (via app.json)
  * 2. Creates Share Extension files (ShareViewController.swift, Info.plist, entitlements)
  * 
- * Note: Xcode target must be added manually once, but files are auto-generated.
+ * Note: Xcode target must be added manually once, but files are auto-generated and preserved.
  */
 const withShareExtension = (config) => {
   // Add App Groups capability to main app (already in app.json)
@@ -30,23 +30,6 @@ const withShareExtension = (config) => {
   return config;
 };
 
-function withAppGroups(config, { groups }) {
-  if (!config.ios) {
-    config.ios = {};
-  }
-  if (!config.ios.entitlements) {
-    config.ios.entitlements = {};
-  }
-  if (!config.ios.entitlements["com.apple.security.application-groups"]) {
-    config.ios.entitlements["com.apple.security.application-groups"] = groups;
-  }
-  return config;
-}
-
-// Xcode target manipulation is complex and error-prone.
-// Instead, we create the files and let the user add the target manually once.
-// The files will be preserved across prebuild runs.
-
 async function createShareExtensionFiles(iosProjectPath) {
   const extensionName = "OneLineShareExtension";
   const extensionPath = path.join(iosProjectPath, extensionName);
@@ -56,10 +39,17 @@ async function createShareExtensionFiles(iosProjectPath) {
     fs.mkdirSync(extensionPath, { recursive: true });
   }
 
-  // Create ShareViewController.swift
-  const swiftContent = `import UIKit
+  // Create ShareViewController.swift with proper implementation
+  const swiftContent = `//
+//  ShareViewController.swift
+//  OneLineShareExtension
+//
+//  Created by Muratcan Yusufoglu on 27.01.2026.
+//
+
+import UIKit
 import Social
-import MobileCoreServices
+import UniformTypeIdentifiers
 
 class ShareViewController: SLComposeServiceViewController {
     
@@ -81,46 +71,68 @@ class ShareViewController: SLComposeServiceViewController {
         var text: String?
         var url: String?
         var imageUris: [String] = []
+        let group = DispatchGroup()
+        
+        // Get text from contentText (user input in share sheet)
+        if let contentText = self.contentText, !contentText.isEmpty {
+            text = contentText
+        }
         
         if let attachments = extensionItem.attachments {
             for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(kUTTypeText as String) {
-                    attachment.loadItem(forTypeIdentifier: kUTTypeText as String, options: nil) { (item, error) in
+                if attachment.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { (item, error) in
                         if let textItem = item as? String {
                             text = textItem
                         }
+                        group.leave()
                     }
                 }
                 
-                if attachment.hasItemConformingToTypeIdentifier(kUTTypeURL as String) {
-                    attachment.loadItem(forTypeIdentifier: kUTTypeURL as String, options: nil) { (item, error) in
+                if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { (item, error) in
                         if let urlItem = item as? URL {
                             url = urlItem.absoluteString
                         }
+                        group.leave()
                     }
                 }
                 
-                if attachment.hasItemConformingToTypeIdentifier(kUTTypeImage as String) {
-                    attachment.loadItem(forTypeIdentifier: kUTTypeImage as String, options: nil) { (item, error) in
+                if attachment.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+                    group.enter()
+                    attachment.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { (item, error) in
                         if let imageItem = item as? UIImage {
                             if let imageData = imageItem.jpegData(compressionQuality: 0.8) {
                                 self.saveImageToAppGroup(imageData: imageData) { savedUri in
                                     if let uri = savedUri {
                                         imageUris.append(uri)
                                     }
+                                    group.leave()
                                 }
+                            } else {
+                                group.leave()
                             }
                         } else if let imageUrl = item as? URL {
                             imageUris.append(imageUrl.absoluteString)
+                            group.leave()
+                        } else {
+                            group.leave()
                         }
                     }
                 }
             }
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.saveToAppGroup(text: text, url: url, imageUris: imageUris)
-            self.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+        group.notify(queue: .main) {
+            self.sendDataToMainApp(text: text, url: url, imageUris: imageUris) { success in
+                print("Share Extension: Data sent, completing extension. Success: \\(success)")
+                // Complete the extension after a small delay to ensure URL is opened
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+                }
+            }
         }
     }
     
@@ -142,44 +154,47 @@ class ShareViewController: SLComposeServiceViewController {
         }
     }
     
-    func saveToAppGroup(text: String?, url: String?, imageUris: [String]) {
-        guard let userDefaults = UserDefaults(suiteName: "group.com.oneline.dailynotes") else {
-            return
-        }
-        
-        var shareData: [String: Any] = [:]
+    func sendDataToMainApp(text: String?, url: String?, imageUris: [String], completion: @escaping (Bool) -> Void) {
+        var urlComponents = URLComponents(string: "oneline://capture")!
+        var queryItems: [URLQueryItem] = []
         
         if let text = text, !text.isEmpty {
-            shareData["text"] = text
+            if let encodedText = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                queryItems.append(URLQueryItem(name: "text", value: encodedText))
+                print("Share Extension: Adding text parameter: \\(text)")
+            }
         }
         
         if let url = url, !url.isEmpty {
-            shareData["url"] = url
+            if let encodedUrl = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                queryItems.append(URLQueryItem(name: "url", value: encodedUrl))
+                print("Share Extension: Adding URL parameter: \\(url)")
+            }
         }
         
         if !imageUris.isEmpty {
-            shareData["imageUris"] = imageUris
-        }
-        
-        shareData["timestamp"] = Date().timeIntervalSince1970
-        
-        userDefaults.set(shareData, forKey: "pendingShareData")
-        userDefaults.synchronize()
-        
-        if let url = URL(string: "oneline://capture") {
-            _ = self.openURL(url)
-        }
-    }
-    
-    @objc func openURL(_ url: URL) -> Bool {
-        var responder: UIResponder? = self
-        while responder != nil {
-            if let application = responder as? UIApplication {
-                return application.perform(#selector(openURL(_:)), with: url) != nil
+            let imagePaths = imageUris.joined(separator: ",")
+            if let encodedPaths = imagePaths.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                queryItems.append(URLQueryItem(name: "imageUris", value: encodedPaths))
+                print("Share Extension: Adding \\(imageUris.count) image(s)")
             }
-            responder = responder?.next
         }
-        return false
+        
+        if !queryItems.isEmpty {
+            urlComponents.queryItems = queryItems
+        }
+        
+        if let finalURL = urlComponents.url {
+            print("Share Extension: Opening URL: \\(finalURL.absoluteString)")
+            // Use extensionContext to open URL in main app
+            self.extensionContext?.open(finalURL, completionHandler: { success in
+                print("Share Extension: URL opened successfully: \\(success)")
+                completion(success)
+            })
+        } else {
+            print("Share Extension: Failed to create final URL")
+            completion(false)
+        }
     }
     
     override func configurationItems() -> [Any]! {
@@ -188,10 +203,11 @@ class ShareViewController: SLComposeServiceViewController {
 }
 `;
 
-  fs.writeFileSync(
-    path.join(extensionPath, "ShareViewController.swift"),
-    swiftContent
-  );
+  const swiftFilePath = path.join(extensionPath, "ShareViewController.swift");
+  // Only write if file doesn't exist or content is different
+  if (!fs.existsSync(swiftFilePath) || fs.readFileSync(swiftFilePath, "utf8") !== swiftContent) {
+    fs.writeFileSync(swiftFilePath, swiftContent);
+  }
 
   // Create Info.plist
   const infoPlistContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -216,6 +232,10 @@ class ShareViewController: SLComposeServiceViewController {
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>oneline</string>
+    </array>
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionAttributes</key>
@@ -239,10 +259,11 @@ class ShareViewController: SLComposeServiceViewController {
 </plist>
 `;
 
-  fs.writeFileSync(
-    path.join(extensionPath, "Info.plist"),
-    infoPlistContent
-  );
+  const infoPlistPath = path.join(extensionPath, "Info.plist");
+  // Only write if file doesn't exist or content is different
+  if (!fs.existsSync(infoPlistPath) || fs.readFileSync(infoPlistPath, "utf8") !== infoPlistContent) {
+    fs.writeFileSync(infoPlistPath, infoPlistContent);
+  }
 
   // Create entitlements file
   const entitlementsContent = `<?xml version="1.0" encoding="UTF-8"?>
@@ -257,10 +278,11 @@ class ShareViewController: SLComposeServiceViewController {
 </plist>
 `;
 
-  fs.writeFileSync(
-    path.join(extensionPath, `${extensionName}.entitlements`),
-    entitlementsContent
-  );
+  const entitlementsPath = path.join(extensionPath, `${extensionName}.entitlements`);
+  // Only write if file doesn't exist or content is different
+  if (!fs.existsSync(entitlementsPath) || fs.readFileSync(entitlementsPath, "utf8") !== entitlementsContent) {
+    fs.writeFileSync(entitlementsPath, entitlementsContent);
+  }
 }
 
 module.exports = withShareExtension;

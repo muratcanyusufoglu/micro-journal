@@ -5,10 +5,20 @@ import {router} from "expo-router";
 export function useDeepLinking() {
   useEffect(() => {
     function handleInitialURL(url: string) {
-      const {path, hostname, queryParams} = Linking.parse(url);
+      const {path, hostname, queryParams, scheme, host} = Linking.parse(url);
 
       // For URLs like oneline://capture, expo-linking may put "capture" in hostname instead of path.
       const route = path || hostname || "";
+
+      // Handle capture route (from Share Extension or deep links)
+      if (route === "capture" || (scheme === "oneline" && host === "capture")) {
+        console.log("Deep Linking: Received capture URL", {url, queryParams});
+        router.push({
+          pathname: "/capture",
+          params: queryParams as Record<string, string>,
+        });
+        return;
+      }
 
       if (route === "quick-capture") {
         const text = queryParams?.text as string | undefined;
@@ -20,11 +30,6 @@ export function useDeepLinking() {
         } else {
           router.push("/quick-capture");
         }
-      } else if (route === "capture") {
-        router.push({
-          pathname: "/capture",
-          params: queryParams as Record<string, string>,
-        });
       }
     }
 

@@ -2,10 +2,19 @@ import { useState, useRef } from "react"
 import { Audio } from "expo-av"
 import * as FileSystem from "expo-file-system/legacy"
 
+// Lazy load Voice module to handle cases where native module is not available
+let Voice: any = null;
+try {
+  Voice = require("@react-native-voice/voice").default;
+} catch (error) {
+  console.warn("Voice module not available:", error);
+}
+
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
+  const [transcription, setTranscription] = useState<string>("")
   const recordingRef = useRef<Audio.Recording | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -28,6 +37,27 @@ export function useVoiceRecorder() {
       recordingRef.current = recording
       setIsRecording(true)
       setRecordingDuration(0)
+      setTranscription("")
+
+      // Start speech recognition (if available)
+      if (Voice) {
+        try {
+          await Voice.start("en-US")
+          Voice.onSpeechResults = (e: any) => {
+            if (e.value && e.value.length > 0) {
+              setTranscription(e.value[0])
+            }
+          }
+          Voice.onSpeechPartialResults = (e: any) => {
+            if (e.value && e.value.length > 0) {
+              setTranscription(e.value[0])
+            }
+          }
+        } catch (speechError) {
+          console.warn("Speech recognition not available:", speechError)
+          // Continue recording even if speech recognition fails
+        }
+      }
 
       // Update duration every second
       intervalRef.current = setInterval(() => {
@@ -38,8 +68,8 @@ export function useVoiceRecorder() {
     }
   }
 
-  async function stopRecording(): Promise<string | null> {
-    if (!recordingRef.current) return null
+  async function stopRecording(): Promise<{uri: string | null; transcription: string}> {
+    if (!recordingRef.current) return {uri: null, transcription: ""}
 
     try {
       if (intervalRef.current) {
@@ -48,12 +78,23 @@ export function useVoiceRecorder() {
       }
 
       setIsRecording(false)
+      
+      // Stop speech recognition (if available)
+      if (Voice) {
+        try {
+          await Voice.stop()
+        } catch (speechError) {
+          console.warn("Failed to stop speech recognition:", speechError)
+        }
+      }
+
       await recordingRef.current.stopAndUnloadAsync()
 
       const uri = recordingRef.current.getURI()
+      const finalTranscription = transcription
       recordingRef.current = null
 
-      if (!uri) return null
+      if (!uri) return {uri: null, transcription: finalTranscription}
 
       // Move to permanent location
       const voiceDir = `${FileSystem.documentDirectory}voice/`
@@ -69,16 +110,17 @@ export function useVoiceRecorder() {
       await FileSystem.moveAsync({ from: uri, to: newUri })
 
       setRecordedUri(newUri)
-      return newUri
+      return {uri: newUri, transcription: finalTranscription}
     } catch (error) {
       console.error("Failed to stop recording:", error)
-      return null
+      return {uri: null, transcription: transcription}
     }
   }
 
   function resetRecording() {
     setRecordingDuration(0)
     setRecordedUri(null)
+    setTranscription("")
   }
 
   function formatDuration(seconds: number): string {
@@ -91,6 +133,7 @@ export function useVoiceRecorder() {
     isRecording,
     recordingDuration: recordingDuration * 1000, // Convert to ms
     recordedUri,
+    transcription,
     formattedDuration: formatDuration(recordingDuration),
     startRecording,
     stopRecording,

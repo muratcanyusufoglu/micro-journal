@@ -16,6 +16,8 @@ export default function CaptureScreenRoute() {
   const toast = useToast();
 
   function parseShareData(): ShareData {
+    console.log("Capture Screen: Received params", params);
+    
     const text = (params.text as string) || undefined;
     const url = (params.url as string) || undefined;
     const imageUri = (params.imageUri as string) || undefined;
@@ -30,13 +32,17 @@ export default function CaptureScreenRoute() {
       type = "url";
     }
 
-    return {
+    const shareData = {
       text: text || url,
       url,
       imageUri,
       imageUris,
       type,
     };
+    
+    console.log("Capture Screen: Parsed share data", shareData);
+    
+    return shareData;
   }
 
   async function handleSave(
@@ -45,6 +51,7 @@ export default function CaptureScreenRoute() {
     photos: string[]
   ) {
     try {
+      console.log("Capture Screen: Saving", { text, mood, photos });
       const dateKey = await getTodayDateKey();
       let savedCount = 0;
 
@@ -67,6 +74,8 @@ export default function CaptureScreenRoute() {
         }
       }
 
+      console.log("Capture Screen: Saved count", savedCount);
+      
       if (savedCount > 0) {
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success

@@ -22,6 +22,7 @@ export {SecondaryButton} from "./SecondaryButton";
 export {TextAreaCard} from "./TextAreaCard";
 export {TextEditorSheet} from "./TextEditorSheet";
 export {TextNoteCard} from "./TextNoteCard";
-export {ToastProvider, useToast} from "./Toast";
+export {Toast, ToastProvider, useToast} from "./Toast";
 export {VoiceMiniRecorder} from "./VoiceMiniRecorder";
 export {VoiceNoteCard} from "./VoiceNoteCard";
+export {QRScannerScreen} from "./QRScannerScreen";

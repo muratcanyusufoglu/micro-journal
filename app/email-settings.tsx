@@ -1,26 +1,23 @@
 import React, {useState, useEffect} from "react";
-import {Alert, ScrollView, Text, TextInput, View, ViewStyle, TextStyle} from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import {router} from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {AppHeader, Card, Screen, PrimaryButton} from "../src/ui";
-import type {EmailTemplate} from "../src/data/emailTemplates";
-
-const EMAIL_SETTINGS_KEY = "@oneline:email_settings";
-
-interface EmailSettings {
-  defaultRecipient: string;
-  defaultTemplate: EmailTemplate;
-  enabled: boolean;
-}
+import {loadEmailSettings, saveEmailSettings} from "../src/data";
 
 export default function EmailSettingsScreen() {
   const theme = useTheme();
-  const [settings, setSettings] = useState<EmailSettings>({
-    defaultRecipient: "",
-    defaultTemplate: "single",
-    enabled: true,
-  });
+  const [recipients, setRecipients] = useState<string[]>([]);
+  const [newEmail, setNewEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,10 +26,8 @@ export default function EmailSettingsScreen() {
 
   async function loadSettings() {
     try {
-      const stored = await AsyncStorage.getItem(EMAIL_SETTINGS_KEY);
-      if (stored) {
-        setSettings(JSON.parse(stored));
-      }
+      const settings = await loadEmailSettings();
+      setRecipients(settings.recipients);
     } catch (error) {
       console.error("Error loading email settings:", error);
     } finally {
@@ -42,7 +37,7 @@ export default function EmailSettingsScreen() {
 
   async function saveSettings() {
     try {
-      await AsyncStorage.setItem(EMAIL_SETTINGS_KEY, JSON.stringify(settings));
+      await saveEmailSettings({recipients});
       Alert.alert("Saved", "Email settings saved successfully");
     } catch (error) {
       console.error("Error saving email settings:", error);
@@ -92,6 +87,45 @@ export default function EmailSettingsScreen() {
     marginTop: theme.spacing.md,
   };
 
+  const $recipientRow: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: theme.spacing.xs,
+  };
+
+  const $recipientText: TextStyle = {
+    fontSize: theme.typography.body,
+    color: theme.colors.textPrimary,
+  };
+
+  const $removeText: TextStyle = {
+    fontSize: theme.typography.small,
+    color: theme.colors.textSecondary,
+  };
+
+  function handleAddRecipient() {
+    const email = newEmail.trim();
+    if (!email) return;
+
+    if (!email.includes("@")) {
+      Alert.alert("Invalid email", "Please enter a valid email address");
+      return;
+    }
+
+    if (recipients.includes(email)) {
+      Alert.alert("Already added", "This email is already in your list");
+      return;
+    }
+
+    setRecipients([...recipients, email]);
+    setNewEmail("");
+  }
+
+  function handleRemoveRecipient(email: string) {
+    setRecipients(recipients.filter((r) => r !== email));
+  }
+
   if (isLoading) {
     return (
       <Screen>
@@ -116,41 +150,37 @@ export default function EmailSettingsScreen() {
         <ScrollView contentContainerStyle={$scrollContent}>
           <Card style={$card}>
             <View style={$inputContainer}>
-              <Text style={$label}>Default Recipient</Text>
+              <Text style={$label}>Add Recipient</Text>
               <TextInput
                 style={$input}
-                value={settings.defaultRecipient}
-                onChangeText={(text) =>
-                  setSettings({...settings, defaultRecipient: text})
-                }
+                value={newEmail}
+                onChangeText={setNewEmail}
                 placeholder="email@example.com"
                 placeholderTextColor={theme.colors.textPlaceholder}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              <PrimaryButton
+                title="Add"
+                onPress={handleAddRecipient}
+                disabled={!newEmail.trim()}
+              />
             </View>
 
-            <View style={$inputContainer}>
-              <Text style={$label}>Default Template</Text>
-              <View style={{gap: theme.spacing.xs}}>
-                {(["single", "daily", "weekly"] as EmailTemplate[]).map(
-                  (template) => (
-                    <PrimaryButton
-                      key={template}
-                      title={template.charAt(0).toUpperCase() + template.slice(1)}
-                      onPress={() =>
-                        setSettings({...settings, defaultTemplate: template})
-                      }
-                      disabled={settings.defaultTemplate === template}
-                      style={{
-                        opacity: settings.defaultTemplate === template ? 0.5 : 1,
-                      }}
-                    />
-                  )
-                )}
+            {recipients.length > 0 && (
+              <View style={$inputContainer}>
+                <Text style={$label}>Saved Recipients</Text>
+                {recipients.map((email) => (
+                  <View key={email} style={$recipientRow}>
+                    <Text style={$recipientText}>{email}</Text>
+                    <Pressable onPress={() => handleRemoveRecipient(email)}>
+                      <Text style={$removeText}>Remove</Text>
+                    </Pressable>
+                  </View>
+                ))}
               </View>
-            </View>
+            )}
           </Card>
 
           <View style={$buttonContainer}>

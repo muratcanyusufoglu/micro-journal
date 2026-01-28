@@ -1,10 +1,10 @@
-import React from "react";
-import {useLocalSearchParams, router} from "expo-router";
-import {Screen} from "../src/ui/Screen";
-import {QuickCaptureScreen} from "../src/ui/QuickCaptureScreen";
-import {useToast} from "../src/ui";
-import {addTextEntry, getTodayDateKey} from "../src/data";
 import * as Haptics from "expo-haptics";
+import {router, useLocalSearchParams} from "expo-router";
+import React from "react";
+import {addTextEntry, getTodayDateKey} from "../src/data";
+import {useToast} from "../src/ui";
+import {QuickCaptureScreen} from "../src/ui/QuickCaptureScreen";
+import {Screen} from "../src/ui/Screen";
 
 export default function QuickCaptureScreenRoute() {
   const params = useLocalSearchParams();

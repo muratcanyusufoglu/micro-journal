@@ -44,8 +44,9 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "OneLine needs access to your photo library to attach photos to your journal entries.",
         "NSPhotoLibraryAddUsageDescription": "OneLine needs permission to save photos to your library.",
-        "NSMicrophoneUsageDescription": "OneLine needs access to your microphone to record voice notes for your journal entries.",
-        "NSCameraUsageDescription": "OneLine needs access to your camera to take photos for your journal entries."
+        "NSMicrophoneUsageDescription": "OneLine needs access to your microphone to record voice notes and transcribe them to text for your journal entries.",
+        "NSSpeechRecognitionUsageDescription": "OneLine needs access to speech recognition to convert your voice notes to text.",
+        "NSCameraUsageDescription": "OneLine needs access to your camera to take photos and scan QR codes for your journal entries."
       }
     },
     "android": {
@@ -62,6 +63,7 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [

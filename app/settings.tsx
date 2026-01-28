@@ -384,6 +384,39 @@ export default function SettingsScreen() {
             <Pressable
               style={({pressed}) => [
                 $row,
+                $rowBorder,
+                {
+                  backgroundColor: pressed
+                    ? `${theme.colors.textPrimary}05`
+                    : "transparent",
+                },
+              ]}
+              onPress={() => router.push("/qr-scan")}
+            >
+              <View style={$rowLeft}>
+                <MaterialIcons
+                  name="qr-code-scanner"
+                  size={24}
+                  color={theme.colors.textSecondary}
+                />
+                <View>
+                  <Text style={$rowTitle}>QR Code Scanner</Text>
+                  <Text style={$rowSubtitle}>Scan QR codes to notes</Text>
+                </View>
+              </View>
+
+              <View style={$rowRight}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={theme.colors.textMuted}
+                />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={({pressed}) => [
+                $row,
                 {
                   backgroundColor: pressed
                     ? `${theme.colors.textPrimary}05`

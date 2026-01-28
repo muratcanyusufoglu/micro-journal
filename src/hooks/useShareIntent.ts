@@ -9,6 +9,16 @@ export function useShareIntent() {
   useEffect(() => {
     async function handleShareIntent() {
       const url = await Linking.getInitialURL();
+      
+      // Check for iOS App Group data first (if URL doesn't have params)
+      if (Platform.OS === "ios" && (!url || !url.includes("capture"))) {
+        const appGroupData = await checkAppGroupData();
+        if (appGroupData) {
+          await processShareData(appGroupData);
+          return;
+        }
+      }
+
       if (!url) return;
 
       const {scheme, host, queryParams} = Linking.parse(url);
@@ -35,6 +45,14 @@ export function useShareIntent() {
         await processShareData(queryParams as Record<string, string>);
       } else if (Platform.OS === "android") {
         await processAndroidIntent(event.url);
+      } else if (Platform.OS === "ios") {
+        // Check App Group if URL doesn't have params
+        if (!queryParams || Object.keys(queryParams).length === 0) {
+          const appGroupData = await checkAppGroupData();
+          if (appGroupData) {
+            await processShareData(appGroupData);
+          }
+        }
       }
     });
 
@@ -42,6 +60,14 @@ export function useShareIntent() {
       subscription.remove();
     };
   }, []);
+}
+
+// iOS App Group'dan veri okuma (native module olmadan, sadece path'ler için)
+async function checkAppGroupData(): Promise<Record<string, string> | null> {
+  // Note: Full App Group access requires native module
+  // For now, we rely on URL parameters from Share Extension
+  // This function is a placeholder for future native module implementation
+  return null;
 }
 
 async function processShareData(params: Record<string, string>) {

@@ -55,18 +55,34 @@ export async function updateTextEntry(entryId: number, newText: string, mood: Mo
 export async function addVoiceEntry(
   dateKey: string,
   audioUri: string,
-  durationMs: number
+  durationMs: number,
+  transcription?: string | null
 ): Promise<number> {
   const db = await getDatabase()
   const now = formatTimestamp(new Date())
 
   const result = await db.runAsync(
-    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, audioUri, durationMs, isEdited)
-     VALUES (?, 'voice', ?, ?, ?, ?, 0)`,
-    [dateKey, now, now, audioUri, durationMs]
+    `INSERT INTO entries (dateKey, type, createdAt, updatedAt, audioUri, durationMs, isEdited, transcription)
+     VALUES (?, 'voice', ?, ?, ?, ?, 0, ?)`,
+    [dateKey, now, now, audioUri, durationMs, transcription || null]
   )
 
   return result.lastInsertRowId
+}
+
+export async function updateVoiceEntryTranscription(
+  entryId: number,
+  transcription: string
+): Promise<void> {
+  const db = await getDatabase()
+  const now = formatTimestamp(new Date())
+
+  await db.runAsync(
+    `UPDATE entries 
+     SET transcription = ?, updatedAt = ?
+     WHERE id = ? AND type = 'voice'`,
+    [transcription, now, entryId]
+  )
 }
 
 // ==================== PHOTO ENTRIES ====================

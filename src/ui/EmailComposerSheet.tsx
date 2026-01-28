@@ -1,10 +1,11 @@
 import React, {useState, useEffect} from "react";
-import {View, TextInput, ViewStyle, TextStyle, Alert} from "react-native";
+import {Alert, Pressable, Text, TextInput, View, ViewStyle, TextStyle} from "react-native";
 import {useTheme} from "../theme/ThemeProvider";
 import {BottomSheet} from "./BottomSheet";
 import {PrimaryButton} from "./PrimaryButton";
 import {SecondaryButton} from "./SecondaryButton";
 import {useEmailComposer} from "../hooks/useEmailComposer";
+import {loadEmailSettings} from "../data";
 
 interface EmailComposerSheetProps {
   visible: boolean;
@@ -28,10 +29,24 @@ export function EmailComposerSheet({
   const [recipients, setRecipients] = useState(defaultRecipient);
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
+  const [savedRecipients, setSavedRecipients] = useState<string[]>([]);
 
   useEffect(() => {
     if (visible) {
-      setRecipients(defaultRecipient);
+      async function prepare() {
+        const settings = await loadEmailSettings();
+        setSavedRecipients(settings.recipients);
+
+        if (defaultRecipient) {
+          setRecipients(defaultRecipient);
+        } else if (settings.recipients.length > 0) {
+          setRecipients(settings.recipients.join(", "));
+        } else {
+          setRecipients("");
+        }
+      }
+
+      prepare();
       setSubject(defaultSubject);
       setBody(defaultBody);
       emailComposer.checkAvailability();
@@ -99,6 +114,42 @@ export function EmailComposerSheet({
     marginTop: theme.spacing.sm,
   };
 
+  const $savedList: ViewStyle = {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.xs,
+  };
+
+  const $chip: ViewStyle = {
+    borderRadius: 999,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSoft,
+    backgroundColor: theme.colors.bgSurface,
+  };
+
+  const $chipSelected: ViewStyle = {
+    backgroundColor: theme.colors.accentPrimary,
+    borderColor: theme.colors.accentPrimary,
+  };
+
+  const $chipText: TextStyle = {
+    fontSize: theme.typography.small,
+    color: theme.colors.textPrimary,
+  };
+
+  function toggleRecipient(email: string) {
+    const list = recipients
+      .split(",")
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
+
+    const exists = list.includes(email);
+    const next = exists ? list.filter((r) => r !== email) : [...list, email];
+    setRecipients(next.join(", "));
+  }
+
   return (
     <BottomSheet visible={visible} title="Send Email" onClose={onClose}>
       <View style={$container}>
@@ -112,12 +163,37 @@ export function EmailComposerSheet({
             style={$input}
             value={recipients}
             onChangeText={setRecipients}
-            placeholder="email@example.com"
+            placeholder="email1@example.com, email2@example.com"
             placeholderTextColor={theme.colors.textPlaceholder}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
           />
+
+          {savedRecipients.length > 0 && (
+            <View style={$savedList}>
+              {savedRecipients.map((email) => {
+                const list = recipients
+                  .split(",")
+                  .map((r) => r.trim())
+                  .filter((r) => r.length > 0);
+                const isSelected = list.includes(email);
+
+                return (
+                  <Pressable
+                    key={email}
+                    onPress={() => toggleRecipient(email)}
+                    style={[
+                      $chip,
+                      isSelected ? $chipSelected : null,
+                    ]}
+                  >
+                    <Text style={$chipText}>{email}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         <View style={$inputContainer}>

@@ -20,16 +20,18 @@ import {
   addVoiceEntry,
   deleteEntry,
   formatDisplayTime,
-  generateSingleEntryEmail,
+  buildSingleEntryEmailPayload,
   getTodayDateKey,
   listEntriesByDate,
   updateTextEntry,
+  updateVoiceEntryTranscription,
 } from "../src/data";
 import type {Entry, Mood} from "../src/data/types";
 import {useEmailComposer} from "../src/hooks/useEmailComposer";
 import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
 import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
 import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
+import {useSpeechRecognition} from "../src/hooks/useSpeechRecognition";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {
   ActionSheet,
@@ -109,6 +111,7 @@ export default function TodayScreen() {
   async function handleAddToToday() {
     if (
       !text.trim() &&
+      !voiceRecorder.isRecording &&
       !voiceRecorder.recordedUri &&
       photoPicker.photos.length === 0
     ) {
@@ -152,13 +155,17 @@ export default function TodayScreen() {
         }
       }
 
-      if (voiceRecorder.recordedUri) {
-        await addVoiceEntry(
-          dateKey,
-          voiceRecorder.recordedUri,
-          voiceRecorder.recordingDuration
-        );
-        addedCount += 1;
+      if (voiceRecorder.isRecording || voiceRecorder.recordedUri) {
+        const result = await voiceRecorder.stopRecording();
+        if (result.uri) {
+          await addVoiceEntry(
+            dateKey,
+            result.uri,
+            voiceRecorder.recordingDuration,
+            result.transcription || null
+          );
+          addedCount += 1;
+        }
         voiceRecorder.resetRecording();
       }
 
@@ -400,22 +407,21 @@ export default function TodayScreen() {
             setShowEmailComposer(false);
             setMenuEntry(null);
           }}
-          defaultBody={
-            menuEntry
-              ? generateSingleEntryEmail(menuEntry).body
-              : ""
-          }
+          defaultBody={menuEntry ? buildSingleEntryEmailPayload(menuEntry).body : ""}
           defaultSubject={
-            menuEntry
-              ? generateSingleEntryEmail(menuEntry).subject
-              : ""
+            menuEntry ? buildSingleEntryEmailPayload(menuEntry).subject : ""
           }
           onSend={async (recipients, subject, body) => {
             try {
+              const attachments = menuEntry
+                ? buildSingleEntryEmailPayload(menuEntry).attachments
+                : undefined;
+
               await emailComposer.composeEmail({
                 recipients,
                 subject,
                 body,
+                attachments,
               });
               setShowEmailComposer(false);
               setMenuEntry(null);
@@ -468,6 +474,7 @@ export default function TodayScreen() {
               }
             }}
             onPhotoPress={photoPicker.pickPhoto}
+            onQRPress={() => router.push("/qr-scan")}
           />
 
           {(voiceRecorder.isRecording || voiceRecorder.recordedUri) && (
@@ -622,6 +629,8 @@ function VoiceNoteCardWrapper({
   onMenuPress: () => void;
 }) {
   const player = useVoicePlayer(entry.audioUri || "");
+  const speechRecognition = useSpeechRecognition();
+  const toast = useToast();
 
   function formatDuration(ms: number): string {
     const seconds = Math.floor(ms / 1000);
@@ -630,13 +639,79 @@ function VoiceNoteCardWrapper({
     return `${mins}:${String(secs).padStart(2, "0")}`;
   }
 
+  async function handleTranscribe() {
+    if (!entry.audioUri) return;
+
+    if (!speechRecognition.isAvailable) {
+      toast.showToast({
+        title: "Speech Recognition Unavailable",
+        message: "Please rebuild the app to enable voice transcription",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      toast.showToast({
+        title: "Transcribing...",
+        message: "Converting voice to text",
+        variant: "info",
+      });
+
+      // Start speech recognition
+      await speechRecognition.startListening();
+
+      // Play the audio
+      await player.play();
+
+      // Wait for transcription to complete (max duration of audio + 5 seconds)
+      const maxWait = (entry.durationMs || 30000) + 5000;
+      const startTime = Date.now();
+      
+      while (speechRecognition.isListening && Date.now() - startTime < maxWait) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      await speechRecognition.stopListening();
+      await player.pause();
+
+      if (speechRecognition.transcript && speechRecognition.transcript.trim()) {
+        await updateVoiceEntryTranscription(entry.id, speechRecognition.transcript.trim());
+        toast.showToast({
+          title: "Transcribed",
+          message: "Voice note converted to text",
+          variant: "success",
+        });
+        // Reload entries to show transcription
+        // This will be handled by parent component
+      } else {
+        toast.showToast({
+          title: "No text detected",
+          message: "Could not transcribe this voice note",
+          variant: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Transcription error:", error);
+      await speechRecognition.stopListening();
+      await player.pause();
+      toast.showToast({
+        title: "Error",
+        message: speechRecognition.error || "Failed to transcribe voice note",
+        variant: "error",
+      });
+    }
+  }
+
   return (
     <VoiceNoteCard
       duration={formatDuration(entry.durationMs || 0)}
       timestamp={formatDisplayTime(entry.createdAt)}
       isPlaying={player.isPlaying}
+      transcription={entry.transcription}
       onPlayPause={player.togglePlayPause}
       onMenuPress={onMenuPress}
+      onTranscribe={entry.transcription ? undefined : handleTranscribe}
     />
   );
 }

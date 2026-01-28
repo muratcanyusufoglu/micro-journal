@@ -7,16 +7,20 @@ interface VoiceNoteCardProps {
   duration: string
   timestamp: string
   isPlaying: boolean
+  transcription?: string | null
   onPlayPause: () => void
   onMenuPress: () => void
+  onTranscribe?: () => void
 }
 
 export function VoiceNoteCard({
   duration,
   timestamp,
   isPlaying,
+  transcription,
   onPlayPause,
   onMenuPress,
+  onTranscribe,
 }: VoiceNoteCardProps) {
   const theme = useTheme()
 
@@ -144,6 +148,41 @@ export function VoiceNoteCard({
         <Text style={$timestamp}>{timestamp}</Text>
         <Text style={$duration}>{duration}</Text>
       </View>
+
+      {transcription && (
+        <View style={{marginTop: theme.spacing.md, paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.borderCard}}>
+          <Text style={{fontSize: theme.typography.body, color: theme.colors.text, lineHeight: 20}}>
+            {transcription}
+          </Text>
+        </View>
+      )}
+
+      {!transcription && onTranscribe && (
+        <Pressable
+          style={({pressed}) => [
+            {
+              marginTop: theme.spacing.md,
+              paddingVertical: theme.spacing.sm,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: theme.radius.button,
+              backgroundColor: pressed ? `${theme.colors.textPrimary}10` : "transparent",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: theme.spacing.xs,
+            },
+          ]}
+          onPress={onTranscribe}
+        >
+          <MaterialIcons
+            name="text-to-speech"
+            size={18}
+            color={theme.colors.textSecondary}
+          />
+          <Text style={{fontSize: theme.typography.caption, color: theme.colors.textSecondary}}>
+            Transcribe to text
+          </Text>
+        </Pressable>
+      )}
     </View>
   )
 }

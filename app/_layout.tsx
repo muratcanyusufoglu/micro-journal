@@ -12,6 +12,8 @@ export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
 
   useDeepLinking();
+  // useShareIntent is now handled by useDeepLinking for iOS Share Extension
+  // Keep it for Android intents
   useShareIntent();
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function RootLayout() {
           <Stack.Screen name="theme-selector" />
           <Stack.Screen name="quick-capture" />
           <Stack.Screen name="capture" />
+          <Stack.Screen name="qr-scan" />
           <Stack.Screen name="email-settings" />
           <Stack.Screen name="day/[dateKey]" />
           <Stack.Screen name="revision/[entryId]" />

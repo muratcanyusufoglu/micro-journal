@@ -8,6 +8,10 @@ export interface EmailTemplateData {
   body: string;
 }
 
+export interface EmailPayload extends EmailTemplateData {
+  attachments?: string[];
+}
+
 const moodLabels: Record<Mood, string> = {
   calm: "Calm",
   happy: "Happy",
@@ -54,6 +58,29 @@ export function generateSingleEntryEmail(entry: Entry): EmailTemplateData {
   const body = formatEntry(entry);
 
   return {subject, body};
+}
+
+function normalizeFileUri(uri: string | null | undefined): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("file://")) return uri;
+  return `file://${uri}`;
+}
+
+export function buildSingleEntryEmailPayload(entry: Entry): EmailPayload {
+  const {subject, body} = generateSingleEntryEmail(entry);
+  const attachments: string[] = [];
+
+  const photoUri = normalizeFileUri(entry.photoUri);
+  const audioUri = normalizeFileUri(entry.audioUri);
+
+  if (photoUri) attachments.push(photoUri);
+  if (audioUri) attachments.push(audioUri);
+
+  return {
+    subject,
+    body,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  };
 }
 
 export function generateDailyEmail(

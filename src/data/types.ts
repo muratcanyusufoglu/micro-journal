@@ -24,6 +24,7 @@ export interface Entry {
   durationMs: number | null;
   isEdited: number;
   mood: Mood | null;
+  transcription: string | null;
 }
 
 export interface TextRevision {

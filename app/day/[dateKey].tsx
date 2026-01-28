@@ -24,7 +24,7 @@ import {
   formatDisplayDate,
   formatDisplayTime,
   deleteEntry,
-  generateSingleEntryEmail,
+  buildSingleEntryEmailPayload,
   updateTextEntry,
 } from "../../src/data"
 import type { Entry } from "../../src/data/types"
@@ -152,18 +152,21 @@ export default function DayDetailScreen() {
           setShowEmailComposer(false)
           setMenuEntry(null)
         }}
-        defaultBody={
-          menuEntry ? generateSingleEntryEmail(menuEntry).body : ""
-        }
+        defaultBody={menuEntry ? buildSingleEntryEmailPayload(menuEntry).body : ""}
         defaultSubject={
-          menuEntry ? generateSingleEntryEmail(menuEntry).subject : ""
+          menuEntry ? buildSingleEntryEmailPayload(menuEntry).subject : ""
         }
         onSend={async (recipients, subject, body) => {
           try {
+            const attachments = menuEntry
+              ? buildSingleEntryEmailPayload(menuEntry).attachments
+              : undefined
+
             await emailComposer.composeEmail({
               recipients,
               subject,
               body,
+              attachments,
             })
             setShowEmailComposer(false)
             setMenuEntry(null)
