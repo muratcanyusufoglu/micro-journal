@@ -1,6 +1,6 @@
-import {useEffect} from "react";
 import * as Linking from "expo-linking";
-import {router} from "expo-router";
+import { router } from "expo-router";
+import { useEffect } from "react";
 
 export function useDeepLinking() {
   useEffect(() => {
@@ -12,7 +12,6 @@ export function useDeepLinking() {
 
       // Handle capture route (from Share Extension or deep links)
       if (route === "capture" || (scheme === "oneline" && host === "capture")) {
-        console.log("Deep Linking: Received capture URL", {url, queryParams});
         router.push({
           pathname: "/capture",
           params: queryParams as Record<string, string>,

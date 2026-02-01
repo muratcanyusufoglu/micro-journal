@@ -19,9 +19,9 @@ import {
   addPhotoEntry,
   addTextEntry,
   addVoiceEntry,
+  buildSingleEntryEmailPayload,
   deleteEntry,
   formatDisplayTime,
-  buildSingleEntryEmailPayload,
   getTodayDateKey,
   listEntriesByDate,
   updateTextEntry,
@@ -30,12 +30,12 @@ import {
 import type {Entry, Mood} from "../src/data/types";
 import {useEmailComposer} from "../src/hooks/useEmailComposer";
 import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
+import {useShareExtension} from "../src/hooks/useShareExtension";
+import {useSpeechRecognition} from "../src/hooks/useSpeechRecognition";
 import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
 import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
 import {useVoiceSettings} from "../src/hooks/useVoiceSettings";
-import {useSpeechRecognition} from "../src/hooks/useSpeechRecognition";
 import {useWatchConnectivity} from "../src/hooks/useWatchConnectivity";
-import {useShareExtension} from "../src/hooks/useShareExtension";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {
   ActionSheet,
@@ -68,6 +68,7 @@ export default function TodayScreen() {
   const [menuEntry, setMenuEntry] = useState<Entry | null>(null);
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [emailEntry, setEmailEntry] = useState<Entry | null>(null);
   const emailComposer = useEmailComposer();
   const {autoTranscribe, setAutoTranscribe} = useVoiceSettings();
   const voiceRecorder = useVoiceRecorder(autoTranscribe);
@@ -85,7 +86,6 @@ export default function TodayScreen() {
   // Handle share extension data
   const shareExtension = useShareExtension({
     onDataReceived: async (data) => {
-      console.log("📱 Share Extension data received:", data);
       await handleShareExtensionData(data);
     },
   });
@@ -103,10 +103,8 @@ export default function TodayScreen() {
     imageUris?: string[];
     timestamp: number;
   }) {
-    console.log("📱 handleShareExtensionData called with:", data);
     try {
       const today = await getTodayDateKey();
-      console.log("📱 Today date key:", today);
       
       let savedCount = 0;
       
@@ -141,8 +139,6 @@ export default function TodayScreen() {
         savedCount += 1;
       }
       
-      console.log("📱 Share Extension: Saved count:", savedCount);
-      
       if (savedCount > 0) {
         await loadTodayEntries();
         
@@ -166,10 +162,8 @@ export default function TodayScreen() {
   }
 
   async function handleWatchQuickNote(message: {type: string; timestamp?: number; mood?: string}) {
-    console.log("iPhone: handleWatchQuickNote called with:", JSON.stringify(message));
     try {
       const today = await getTodayDateKey();
-      console.log("iPhone: Today date key:", today);
       
       const moodMap: Record<string, Mood> = {
         "😊": "happy",
@@ -179,20 +173,16 @@ export default function TodayScreen() {
         "😌": "calm",
       };
       const mood = message.mood ? moodMap[message.mood] || null : null;
-      console.log("iPhone: Mapped mood:", mood);
       
       await addTextEntry(today, "Quick note from Watch", mood);
-      console.log("iPhone: Entry added to database");
       
       await loadTodayEntries();
-      console.log("iPhone: Today entries reloaded");
       
       toast.showToast({
         title: "Watch Note Saved",
         message: "Entry added from Apple Watch",
         variant: "success",
       });
-      console.log("iPhone: Toast shown");
     } catch (error) {
       console.error("iPhone: Error saving watch note:", error);
       toast.showToast({
@@ -511,7 +501,11 @@ export default function TodayScreen() {
               icon: "email",
               onPress: () => {
                 if (!menuEntry) return;
-                setShowEmailComposer(true);
+                setEmailEntry(menuEntry);
+                setMenuEntry(null);
+                setTimeout(() => {
+                  setShowEmailComposer(true);
+                }, 100);
               },
             },
             {
@@ -544,16 +538,14 @@ export default function TodayScreen() {
           visible={showEmailComposer}
           onClose={() => {
             setShowEmailComposer(false);
-            setMenuEntry(null);
+            setEmailEntry(null);
           }}
-          defaultBody={menuEntry ? buildSingleEntryEmailPayload(menuEntry).body : ""}
-          defaultSubject={
-            menuEntry ? buildSingleEntryEmailPayload(menuEntry).subject : ""
-          }
+          defaultBody={emailEntry ? buildSingleEntryEmailPayload(emailEntry).body : ""}
+          defaultSubject={emailEntry ? buildSingleEntryEmailPayload(emailEntry).subject : ""}
           onSend={async (recipients, subject, body) => {
             try {
-              const attachments = menuEntry
-                ? buildSingleEntryEmailPayload(menuEntry).attachments
+              const attachments = emailEntry
+                ? buildSingleEntryEmailPayload(emailEntry).attachments
                 : undefined;
 
               await emailComposer.composeEmail({
@@ -563,7 +555,7 @@ export default function TodayScreen() {
                 attachments,
               });
               setShowEmailComposer(false);
-              setMenuEntry(null);
+              setEmailEntry(null);
               toast.showToast({
                 title: "Email Opened",
                 message: "Email composer opened",

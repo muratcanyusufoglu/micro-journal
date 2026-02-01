@@ -1,8 +1,8 @@
-import React, {useState, useEffect} from "react";
-import {View, StyleSheet, Text, Pressable, ActivityIndicator} from "react-native";
-import {CameraView, Camera, BarcodeScanningResult} from "expo-camera";
-import {useTheme} from "../theme/ThemeProvider";
-import {IconButton} from "./IconButton";
+import { BarcodeScanningResult, Camera, CameraView } from "expo-camera";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useTheme } from "../theme/ThemeProvider";
+import { IconButton } from "./IconButton";
 
 interface QRScannerScreenProps {
   onScanned: (data: string) => void;
@@ -27,7 +27,6 @@ export function QRScannerScreen({onScanned, onCancel}: QRScannerScreenProps) {
     if (scanned) return;
     
     setScanned(true);
-    console.log("QR Code scanned:", data);
     onScanned(data);
   }
 

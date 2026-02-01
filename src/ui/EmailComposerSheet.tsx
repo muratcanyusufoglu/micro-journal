@@ -1,11 +1,12 @@
-import React, {useState, useEffect} from "react";
-import {Alert, Pressable, Text, TextInput, View, ViewStyle, TextStyle} from "react-native";
-import {useTheme} from "../theme/ThemeProvider";
-import {BottomSheet} from "./BottomSheet";
-import {PrimaryButton} from "./PrimaryButton";
-import {SecondaryButton} from "./SecondaryButton";
-import {useEmailComposer} from "../hooks/useEmailComposer";
-import {loadEmailSettings} from "../data";
+import { MaterialIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
+import { loadEmailSettings } from "../data";
+import { useEmailComposer } from "../hooks/useEmailComposer";
+import { useTheme } from "../theme/ThemeProvider";
+import { BottomSheet } from "./BottomSheet";
+import { PrimaryButton } from "./PrimaryButton";
+import { SecondaryButton } from "./SecondaryButton";
 
 interface EmailComposerSheetProps {
   visible: boolean;
@@ -26,32 +27,44 @@ export function EmailComposerSheet({
 }: EmailComposerSheetProps) {
   const theme = useTheme();
   const emailComposer = useEmailComposer();
-  const [recipients, setRecipients] = useState(defaultRecipient);
-  const [subject, setSubject] = useState(defaultSubject);
-  const [body, setBody] = useState(defaultBody);
+  const [recipients, setRecipients] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
   const [savedRecipients, setSavedRecipients] = useState<string[]>([]);
+  const [showRecipientDropdown, setShowRecipientDropdown] = useState(false);
 
+  // When sheet becomes visible, load recipients and set body/subject
   useEffect(() => {
-    if (visible) {
-      async function prepare() {
+    if (!visible) {
+      setShowRecipientDropdown(false);
+      return;
+    }
+
+    // Set body and subject immediately
+    setBody(defaultBody || "");
+    setSubject(defaultSubject || "");
+
+    // Load saved recipients
+    async function loadRecipients() {
+      try {
         const settings = await loadEmailSettings();
-        setSavedRecipients(settings.recipients);
+        const recipientsList = settings.recipients || [];
+        setSavedRecipients(recipientsList);
 
         if (defaultRecipient) {
           setRecipients(defaultRecipient);
-        } else if (settings.recipients.length > 0) {
-          setRecipients(settings.recipients.join(", "));
-        } else {
-          setRecipients("");
+        } else if (recipientsList.length > 0) {
+          setRecipients(recipientsList.join(", "));
         }
+      } catch (error) {
+        console.error("Error loading email settings:", error);
+        setSavedRecipients([]);
       }
-
-      prepare();
-      setSubject(defaultSubject);
-      setBody(defaultBody);
-      emailComposer.checkAvailability();
     }
-  }, [visible, defaultRecipient, defaultSubject, defaultBody]);
+
+    loadRecipients();
+    emailComposer.checkAvailability();
+  }, [visible, defaultBody, defaultSubject, defaultRecipient]);
 
   async function handleSend() {
     if (!recipients.trim()) {
@@ -139,6 +152,67 @@ export function EmailComposerSheet({
     color: theme.colors.textPrimary,
   };
 
+  const $chipTextSelected: TextStyle = {
+    fontSize: theme.typography.small,
+    color: theme.colors.textOnAccent,
+    fontWeight: "600",
+  };
+
+  const $inputRow: ViewStyle = {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    alignItems: "center",
+  };
+
+  const $dropdownButton: ViewStyle = {
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.borderCard,
+    padding: theme.spacing.md,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 50,
+  };
+
+  const $dropdownContainer: ViewStyle = {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: theme.spacing.xs,
+    backgroundColor: theme.colors.bgSurface,
+    borderRadius: theme.radius.card,
+    borderWidth: 1,
+    borderColor: theme.colors.borderCard,
+    maxHeight: 200,
+    zIndex: 1000,
+    ...theme.shadows.soft,
+  };
+
+  const $dropdownItem: ViewStyle = {
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSoft,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  };
+
+  const $dropdownItemText: TextStyle = {
+    fontSize: theme.typography.body,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  };
+
+  const $selectedChipsContainer: ViewStyle = {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
+  };
+
   function toggleRecipient(email: string) {
     const list = recipients
       .split(",")
@@ -150,48 +224,124 @@ export function EmailComposerSheet({
     setRecipients(next.join(", "));
   }
 
+  function addRecipientToInput(email: string) {
+    const list = recipients
+      .split(",")
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
+
+    if (!list.includes(email)) {
+      const next = [...list, email];
+      setRecipients(next.join(", "));
+    }
+    setShowRecipientDropdown(false);
+  }
+
+  function getSelectedRecipients(): string[] {
+    return recipients
+      .split(",")
+      .map((r) => r.trim())
+      .filter((r) => r.length > 0);
+  }
+
   return (
     <BottomSheet visible={visible} title="Send Email" onClose={onClose}>
       <View style={$container}>
         <View style={$inputContainer}>
-          <TextInput
-            style={[$label, {marginBottom: 0}]}
-            value="To"
-            editable={false}
-          />
-          <TextInput
-            style={$input}
-            value={recipients}
-            onChangeText={setRecipients}
-            placeholder="email1@example.com, email2@example.com"
-            placeholderTextColor={theme.colors.textPlaceholder}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <Text style={$label}>To</Text>
+          <View style={$inputRow}>
+            <TextInput
+              style={[$input, {flex: 1}]}
+              value={recipients}
+              onChangeText={setRecipients}
+              placeholder="email1@example.com, email2@example.com"
+              placeholderTextColor={theme.colors.textPlaceholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={{position: "relative", zIndex: 1000}}>
+              <Pressable
+                style={({pressed}) => [
+                  $dropdownButton,
+                  {
+                    backgroundColor: pressed
+                      ? theme.colors.bgSubtle
+                      : theme.colors.bgSurface,
+                    opacity: savedRecipients.length > 0 ? 1 : 0.5,
+                  },
+                ]}
+                onPress={() => {
+                  console.log("📧 EmailComposerSheet: Dropdown button pressed, savedRecipients count:", savedRecipients.length);
+                  if (savedRecipients.length > 0) {
+                    setShowRecipientDropdown(!showRecipientDropdown);
+                  } else {
+                    console.log("📧 EmailComposerSheet: No saved recipients available");
+                  }
+                }}
+                disabled={savedRecipients.length === 0}
+              >
+                <MaterialIcons
+                  name={showRecipientDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                  size={24}
+                  color={theme.colors.textPrimary}
+                />
+              </Pressable>
+              {showRecipientDropdown && savedRecipients.length > 0 && (
+                <View style={$dropdownContainer}>
+                  <ScrollView>
+                    {savedRecipients.map((email) => {
+                      const selected = getSelectedRecipients();
+                      const isSelected = selected.includes(email);
+                      return (
+                        <Pressable
+                          key={email}
+                          style={({pressed}) => [
+                            $dropdownItem,
+                            {
+                              backgroundColor: pressed
+                                ? theme.colors.bgSubtle
+                                : isSelected
+                                ? theme.colors.accentSoft
+                                : "transparent",
+                            },
+                          ]}
+                          onPress={() => addRecipientToInput(email)}
+                        >
+                          <Text style={$dropdownItemText}>{email}</Text>
+                          {isSelected && (
+                            <MaterialIcons
+                              name="check"
+                              size={20}
+                              color={theme.colors.accentPrimary}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          </View>
 
-          {savedRecipients.length > 0 && (
-            <View style={$savedList}>
-              {savedRecipients.map((email) => {
-                const list = recipients
-                  .split(",")
-                  .map((r) => r.trim())
-                  .filter((r) => r.length > 0);
-                const isSelected = list.includes(email);
-
-                return (
-                  <Pressable
-                    key={email}
-                    onPress={() => toggleRecipient(email)}
-                    style={[
-                      $chip,
-                      isSelected ? $chipSelected : null,
-                    ]}
-                  >
-                    <Text style={$chipText}>{email}</Text>
-                  </Pressable>
-                );
-              })}
+          {getSelectedRecipients().length > 0 && (
+            <View style={$selectedChipsContainer}>
+              {getSelectedRecipients().map((email) => (
+                <Pressable
+                  key={email}
+                  onPress={() => toggleRecipient(email)}
+                  style={$chipSelected}
+                >
+                  <Text style={$chipTextSelected}>{email}</Text>
+                  <MaterialIcons
+                    name="close"
+                    size={16}
+                    color={theme.colors.textOnAccent}
+                    style={{marginLeft: theme.spacing.xs}}
+                  />
+                </Pressable>
+              ))}
             </View>
           )}
         </View>
@@ -212,11 +362,7 @@ export function EmailComposerSheet({
         </View>
 
         <View style={$inputContainer}>
-          <TextInput
-            style={[$label, {marginBottom: 0}]}
-            value="Body"
-            editable={false}
-          />
+          <Text style={$label}>Body</Text>
           <TextInput
             style={$textarea}
             value={body}
@@ -225,7 +371,13 @@ export function EmailComposerSheet({
             placeholderTextColor={theme.colors.textPlaceholder}
             multiline
             textAlignVertical="top"
+            editable={true}
           />
+          {defaultBody && defaultBody === body && (
+            <Text style={[theme.typography.small, {color: theme.colors.textSecondary, marginTop: theme.spacing.xs}]}>
+              Entry content is automatically included
+            </Text>
+          )}
         </View>
 
         <View style={$buttonContainer}>

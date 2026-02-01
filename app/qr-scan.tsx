@@ -1,17 +1,15 @@
-import React from "react";
-import {router} from "expo-router";
-import {QRScannerScreen} from "../src/ui/QRScannerScreen";
-import {useToast} from "../src/ui";
-import {addTextEntry, getTodayDateKey} from "../src/data";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import React from "react";
+import { addTextEntry, getTodayDateKey } from "../src/data";
+import { useToast } from "../src/ui";
+import { QRScannerScreen } from "../src/ui/QRScannerScreen";
 
 export default function QRScanRoute() {
   const toast = useToast();
 
   async function handleQRScanned(data: string) {
     try {
-      console.log("QR Code data:", data);
-      
       const dateKey = await getTodayDateKey();
       await addTextEntry(dateKey, `QR Code: ${data}`, null);
 
