@@ -48,7 +48,9 @@ export function EmailComposerSheet({
     async function loadRecipients() {
       try {
         const settings = await loadEmailSettings();
+        console.log("📧 EmailComposerSheet: Loaded email settings:", settings);
         const recipientsList = settings.recipients || [];
+        console.log("📧 EmailComposerSheet: Recipients list:", recipientsList);
         setSavedRecipients(recipientsList);
 
         if (defaultRecipient) {
@@ -57,7 +59,7 @@ export function EmailComposerSheet({
           setRecipients(recipientsList.join(", "));
         }
       } catch (error) {
-        console.error("Error loading email settings:", error);
+        console.error("📧 EmailComposerSheet: Error loading email settings:", error);
         setSavedRecipients([]);
       }
     }
@@ -145,6 +147,12 @@ export function EmailComposerSheet({
   const $chipSelected: ViewStyle = {
     backgroundColor: theme.colors.accentPrimary,
     borderColor: theme.colors.accentPrimary,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.thumb,
+    gap: theme.spacing.xs,
   };
 
   const $chipText: TextStyle = {
@@ -198,12 +206,14 @@ export function EmailComposerSheet({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 56,
   };
 
   const $dropdownItemText: TextStyle = {
     fontSize: theme.typography.body,
     color: theme.colors.textPrimary,
     flex: 1,
+    paddingRight: theme.spacing.sm,
   };
 
   const $selectedChipsContainer: ViewStyle = {
@@ -308,11 +318,27 @@ export function EmailComposerSheet({
                           ]}
                           onPress={() => addRecipientToInput(email)}
                         >
-                          <Text style={$dropdownItemText}>{email}</Text>
+                          <View style={{flex: 1, flexDirection: "row", alignItems: "center", gap: theme.spacing.sm}}>
+                            <MaterialIcons
+                              name="email"
+                              size={20}
+                              color={isSelected ? theme.colors.accentPrimary : theme.colors.textSecondary}
+                            />
+                            <Text 
+                              style={[
+                                $dropdownItemText,
+                                isSelected && {color: theme.colors.accentPrimary, fontWeight: "600"}
+                              ]}
+                              numberOfLines={1}
+                              ellipsizeMode="middle"
+                            >
+                              {email}
+                            </Text>
+                          </View>
                           {isSelected && (
                             <MaterialIcons
-                              name="check"
-                              size={20}
+                              name="check-circle"
+                              size={24}
                               color={theme.colors.accentPrimary}
                             />
                           )}
@@ -333,12 +359,18 @@ export function EmailComposerSheet({
                   onPress={() => toggleRecipient(email)}
                   style={$chipSelected}
                 >
-                  <Text style={$chipTextSelected}>{email}</Text>
                   <MaterialIcons
-                    name="close"
+                    name="email"
                     size={16}
                     color={theme.colors.textOnAccent}
-                    style={{marginLeft: theme.spacing.xs}}
+                  />
+                  <Text style={$chipTextSelected} numberOfLines={1}>
+                    {email}
+                  </Text>
+                  <MaterialIcons
+                    name="close"
+                    size={18}
+                    color={theme.colors.textOnAccent}
                   />
                 </Pressable>
               ))}

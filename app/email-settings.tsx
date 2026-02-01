@@ -1,18 +1,18 @@
-import React, {useState, useEffect} from "react";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-  ViewStyle,
-  TextStyle,
+    Alert,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    TextStyle,
+    View,
+    ViewStyle,
 } from "react-native";
-import {router} from "expo-router";
-import {useTheme} from "../src/theme/ThemeProvider";
-import {AppHeader, Card, Screen, PrimaryButton} from "../src/ui";
-import {loadEmailSettings, saveEmailSettings} from "../src/data";
+import { loadEmailSettings, saveEmailSettings } from "../src/data";
+import { useTheme } from "../src/theme/ThemeProvider";
+import { AppHeader, Card, PrimaryButton, Screen } from "../src/ui";
 
 export default function EmailSettingsScreen() {
   const theme = useTheme();
@@ -27,9 +27,11 @@ export default function EmailSettingsScreen() {
   async function loadSettings() {
     try {
       const settings = await loadEmailSettings();
+      console.log("📧 EmailSettings: Loaded settings:", settings);
+      console.log("📧 EmailSettings: Recipients count:", settings.recipients.length);
       setRecipients(settings.recipients);
     } catch (error) {
-      console.error("Error loading email settings:", error);
+      console.error("📧 EmailSettings: Error loading email settings:", error);
     } finally {
       setIsLoading(false);
     }
@@ -37,11 +39,32 @@ export default function EmailSettingsScreen() {
 
   async function saveSettings() {
     try {
+      console.log("📧 EmailSettings: saveSettings called");
+      console.log("📧 EmailSettings: Saving recipients:", recipients);
+      console.log("📧 EmailSettings: Recipients length:", recipients.length);
+      
+      if (recipients.length === 0) {
+        Alert.alert("No Recipients", "Please add at least one email address before saving");
+        return;
+      }
+      
       await saveEmailSettings({recipients});
+      console.log("📧 EmailSettings: Settings saved successfully");
+      
+      // Verify it was saved
+      const saved = await loadEmailSettings();
+      console.log("📧 EmailSettings: Verified saved settings:", saved);
+      console.log("📧 EmailSettings: Verified recipients count:", saved.recipients.length);
+      
+      if (saved.recipients.length === 0) {
+        Alert.alert("Warning", "Settings were saved but could not be verified. Please try again.");
+        return;
+      }
+      
       Alert.alert("Saved", "Email settings saved successfully");
     } catch (error) {
-      console.error("Error saving email settings:", error);
-      Alert.alert("Error", "Failed to save settings");
+      console.error("📧 EmailSettings: Error saving email settings:", error);
+      Alert.alert("Error", `Failed to save settings: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -104,8 +127,8 @@ export default function EmailSettingsScreen() {
     color: theme.colors.textSecondary,
   };
 
-  function handleAddRecipient() {
-    const email = newEmail.trim();
+  async function handleAddRecipient() {
+    const email = newEmail.trim().toLowerCase();
     if (!email) return;
 
     if (!email.includes("@")) {
@@ -118,12 +141,34 @@ export default function EmailSettingsScreen() {
       return;
     }
 
-    setRecipients([...recipients, email]);
+    const updatedRecipients = [...recipients, email];
+    console.log("📧 EmailSettings: Adding recipient:", email);
+    console.log("📧 EmailSettings: Updated recipients:", updatedRecipients);
+    setRecipients(updatedRecipients);
     setNewEmail("");
+
+    // Auto-save after adding
+    try {
+      await saveEmailSettings({recipients: updatedRecipients});
+      console.log("📧 EmailSettings: Auto-saved after adding recipient");
+    } catch (error) {
+      console.error("📧 EmailSettings: Error auto-saving:", error);
+      Alert.alert("Error", "Failed to save email. Please try again.");
+    }
   }
 
-  function handleRemoveRecipient(email: string) {
-    setRecipients(recipients.filter((r) => r !== email));
+  async function handleRemoveRecipient(email: string) {
+    const updatedRecipients = recipients.filter((r) => r !== email);
+    setRecipients(updatedRecipients);
+
+    // Auto-save after removing
+    try {
+      await saveEmailSettings({recipients: updatedRecipients});
+      console.log("📧 EmailSettings: Auto-saved after removing recipient");
+    } catch (error) {
+      console.error("📧 EmailSettings: Error auto-saving:", error);
+      Alert.alert("Error", "Failed to save changes. Please try again.");
+    }
   }
 
   if (isLoading) {
@@ -182,10 +227,6 @@ export default function EmailSettingsScreen() {
               </View>
             )}
           </Card>
-
-          <View style={$buttonContainer}>
-            <PrimaryButton title="Save Settings" onPress={saveSettings} />
-          </View>
         </ScrollView>
       </View>
     </Screen>
