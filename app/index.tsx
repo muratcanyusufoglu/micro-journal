@@ -1,6 +1,6 @@
 import {MaterialIcons} from "@expo/vector-icons";
-import {router} from "expo-router";
-import React, {useEffect, useState} from "react";
+import {router, useFocusEffect} from "expo-router";
+import React, {useCallback, useEffect, useState} from "react";
 import {
   Alert,
   InputAccessoryView,
@@ -98,6 +98,13 @@ export default function TodayScreen() {
   useEffect(() => {
     loadTodayEntries();
   }, []);
+
+  // Reload entries when screen comes into focus (e.g., returning from QR scan)
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayEntries();
+    }, [])
+  );
 
   async function handleShareExtensionData(data: {
     text?: string;

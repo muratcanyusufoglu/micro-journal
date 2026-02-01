@@ -27,6 +27,7 @@ export function QRScannerScreen({onScanned, onCancel}: QRScannerScreenProps) {
     if (scanned) return;
     
     setScanned(true);
+    // Call onScanned and let parent handle navigation
     onScanned(data);
   }
 
@@ -80,14 +81,16 @@ export function QRScannerScreen({onScanned, onCancel}: QRScannerScreenProps) {
 
   return (
     <View style={$container}>
-      <CameraView
-        style={StyleSheet.absoluteFillObject}
-        facing="back"
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-        barcodeScannerSettings={{
-          barcodeTypes: ["qr", "pdf417"],
-        }}
-      />
+      {!scanned && (
+        <CameraView
+          style={StyleSheet.absoluteFillObject}
+          facing="back"
+          onBarcodeScanned={handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr", "pdf417"],
+          }}
+        />
+      )}
 
       {/* Overlay */}
       <View style={$overlay}>
@@ -124,15 +127,11 @@ export function QRScannerScreen({onScanned, onCancel}: QRScannerScreenProps) {
 
         <View style={$footer}>
           {scanned && (
-            <Pressable
-              style={[
-                $button,
-                {backgroundColor: theme.colors.textPrimary},
-              ]}
-              onPress={() => setScanned(false)}
-            >
-              <Text style={[textStyle, {color: theme.colors.bgPrimary}]}>Scan Again</Text>
-            </Pressable>
+            <View style={$button}>
+              <Text style={[textStyle, {color: theme.colors.textPrimary}]}>
+                Processing...
+              </Text>
+            </View>
           )}
         </View>
       </View>

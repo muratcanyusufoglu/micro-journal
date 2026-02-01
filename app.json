@@ -91,7 +91,7 @@
       ]
     },
     "web": {
-      "output": "static",
+      "output": "static", 
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
