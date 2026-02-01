@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   TextStyle,
   View,
@@ -31,7 +32,10 @@ import {useEmailComposer} from "../src/hooks/useEmailComposer";
 import {usePhotoPicker} from "../src/hooks/usePhotoPicker";
 import {useVoicePlayer} from "../src/hooks/useVoicePlayer";
 import {useVoiceRecorder} from "../src/hooks/useVoiceRecorder";
+import {useVoiceSettings} from "../src/hooks/useVoiceSettings";
 import {useSpeechRecognition} from "../src/hooks/useSpeechRecognition";
+import {useWatchConnectivity} from "../src/hooks/useWatchConnectivity";
+import {useShareExtension} from "../src/hooks/useShareExtension";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {
   ActionSheet,
@@ -65,15 +69,139 @@ export default function TodayScreen() {
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [showEmailComposer, setShowEmailComposer] = useState(false);
   const emailComposer = useEmailComposer();
-
-  const voiceRecorder = useVoiceRecorder();
+  const {autoTranscribe, setAutoTranscribe} = useVoiceSettings();
+  const voiceRecorder = useVoiceRecorder(autoTranscribe);
   const photoPicker = usePhotoPicker();
+  const watchConnectivity = useWatchConnectivity((message, replyHandler) => {
+    if (message.type === "quick-note") {
+      handleWatchQuickNote(message);
+      // Reply to Watch
+      if (replyHandler) {
+        replyHandler({success: true, message: "Note saved"});
+      }
+    }
+  });
+  
+  // Handle share extension data
+  const shareExtension = useShareExtension({
+    onDataReceived: async (data) => {
+      console.log("📱 Share Extension data received:", data);
+      await handleShareExtensionData(data);
+    },
+  });
+  
   const saveAccessoryId = "oneline-save-accessory";
   const isIOS = (Platform.OS as string) === "ios";
 
   useEffect(() => {
     loadTodayEntries();
   }, []);
+
+  async function handleShareExtensionData(data: {
+    text?: string;
+    url?: string;
+    imageUris?: string[];
+    timestamp: number;
+  }) {
+    console.log("📱 handleShareExtensionData called with:", data);
+    try {
+      const today = await getTodayDateKey();
+      console.log("📱 Today date key:", today);
+      
+      let savedCount = 0;
+      
+      // Combine text and URL for the message
+      let messageText = data.text || "";
+      if (data.url && data.url !== data.text) {
+        messageText = messageText ? `${messageText}\n${data.url}` : data.url;
+      }
+      
+      // If we have images, save them with the text
+      if (data.imageUris && data.imageUris.length > 0) {
+        const [firstImage, ...restImages] = data.imageUris;
+        
+        if (messageText) {
+          // First image with text
+          await addPhotoEntry(today, firstImage, undefined, messageText, null);
+          savedCount += 1;
+        } else {
+          // First image without text
+          await addPhotoEntry(today, firstImage);
+          savedCount += 1;
+        }
+        
+        // Rest of the images
+        for (const imageUri of restImages) {
+          await addPhotoEntry(today, imageUri);
+          savedCount += 1;
+        }
+      } else if (messageText) {
+        // Just text/URL
+        await addTextEntry(today, messageText, null);
+        savedCount += 1;
+      }
+      
+      console.log("📱 Share Extension: Saved count:", savedCount);
+      
+      if (savedCount > 0) {
+        await loadTodayEntries();
+        
+        toast.showToast({
+          title: "Saved from Share",
+          message:
+            savedCount === 1
+              ? "Entry added to Today"
+              : `${savedCount} entries added to Today`,
+          variant: "success",
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error saving share extension data:", error);
+      toast.showToast({
+        title: "Error",
+        message: "Failed to save shared content",
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleWatchQuickNote(message: {type: string; timestamp?: number; mood?: string}) {
+    console.log("iPhone: handleWatchQuickNote called with:", JSON.stringify(message));
+    try {
+      const today = await getTodayDateKey();
+      console.log("iPhone: Today date key:", today);
+      
+      const moodMap: Record<string, Mood> = {
+        "😊": "happy",
+        "😐": "neutral",
+        "😢": "sad",
+        "😡": "angry",
+        "😌": "calm",
+      };
+      const mood = message.mood ? moodMap[message.mood] || null : null;
+      console.log("iPhone: Mapped mood:", mood);
+      
+      await addTextEntry(today, "Quick note from Watch", mood);
+      console.log("iPhone: Entry added to database");
+      
+      await loadTodayEntries();
+      console.log("iPhone: Today entries reloaded");
+      
+      toast.showToast({
+        title: "Watch Note Saved",
+        message: "Entry added from Apple Watch",
+        variant: "success",
+      });
+      console.log("iPhone: Toast shown");
+    } catch (error) {
+      console.error("iPhone: Error saving watch note:", error);
+      toast.showToast({
+        title: "Error",
+        message: "Failed to save watch note",
+        variant: "error",
+      });
+    }
+  }
 
   useEffect(() => {
     function onKeyboardShow(e: KeyboardEvent) {
@@ -155,7 +283,8 @@ export default function TodayScreen() {
         }
       }
 
-      if (voiceRecorder.isRecording || voiceRecorder.recordedUri) {
+      if (voiceRecorder.isRecording) {
+        // Finish active recording and save with (optional) transcription
         const result = await voiceRecorder.stopRecording();
         if (result.uri) {
           await addVoiceEntry(
@@ -166,6 +295,16 @@ export default function TodayScreen() {
           );
           addedCount += 1;
         }
+        voiceRecorder.resetRecording();
+      } else if (voiceRecorder.recordedUri) {
+        // Recording already stopped via mic button; use existing URI/transcription
+        await addVoiceEntry(
+          dateKey,
+          voiceRecorder.recordedUri,
+          voiceRecorder.recordingDuration,
+          voiceRecorder.transcription || null
+        );
+        addedCount += 1;
         voiceRecorder.resetRecording();
       }
 
@@ -478,17 +617,66 @@ export default function TodayScreen() {
           />
 
           {(voiceRecorder.isRecording || voiceRecorder.recordedUri) && (
-            <VoiceMiniRecorder
-              isRecording={voiceRecorder.isRecording}
-              duration={voiceRecorder.formattedDuration}
-              onToggle={() => {
-                if (voiceRecorder.isRecording) {
-                  voiceRecorder.stopRecording();
-                } else {
-                  voiceRecorder.resetRecording();
-                }
+            <View
+              style={{
+                marginTop: theme.spacing.sm,
+                paddingHorizontal: theme.spacing.sm,
+                gap: theme.spacing.xs,
               }}
-            />
+            >
+              <VoiceMiniRecorder
+                isRecording={voiceRecorder.isRecording}
+                duration={voiceRecorder.formattedDuration}
+                onToggle={() => {
+                  if (voiceRecorder.isRecording) {
+                    voiceRecorder.stopRecording();
+                  } else {
+                    voiceRecorder.resetRecording();
+                  }
+                }}
+              />
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: theme.spacing.sm,
+                  paddingVertical: theme.spacing.xs,
+                }}
+              >
+                <View style={{flex: 1}}>
+                  <Text
+                    style={{
+                      fontSize: theme.typography.small,
+                      fontWeight: "500",
+                      color: theme.colors.textPrimary,
+                    }}
+                  >
+                    Auto transcribe
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: theme.typography.micro,
+                      color: theme.colors.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    Convert this and future recordings to text
+                  </Text>
+                </View>
+
+                <Switch
+                  value={autoTranscribe}
+                  onValueChange={setAutoTranscribe}
+                  trackColor={{
+                    false: theme.colors.borderSoft,
+                    true: theme.colors.textSecondary,
+                  }}
+                  thumbColor={theme.colors.textPrimary}
+                />
+              </View>
+            </View>
           )}
 
           {photoPicker.photos.length > 0 && (

@@ -3,14 +3,14 @@ import { Audio } from "expo-av"
 import * as FileSystem from "expo-file-system/legacy"
 
 // Lazy load Voice module to handle cases where native module is not available
-let Voice: any = null;
+let Voice: any = null
 try {
-  Voice = require("@react-native-voice/voice").default;
+  Voice = require("@react-native-voice/voice").default
 } catch (error) {
-  console.warn("Voice module not available:", error);
+  console.warn("Voice module not available:", error)
 }
 
-export function useVoiceRecorder() {
+export function useVoiceRecorder(autoTranscribe: boolean = false) {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [recordedUri, setRecordedUri] = useState<string | null>(null)
@@ -39,8 +39,8 @@ export function useVoiceRecorder() {
       setRecordingDuration(0)
       setTranscription("")
 
-      // Start speech recognition (if available)
-      if (Voice) {
+      // Start speech recognition (if available and enabled in settings)
+      if (autoTranscribe && Voice) {
         try {
           await Voice.start("en-US")
           Voice.onSpeechResults = (e: any) => {
@@ -79,8 +79,8 @@ export function useVoiceRecorder() {
 
       setIsRecording(false)
       
-      // Stop speech recognition (if available)
-      if (Voice) {
+      // Stop speech recognition (if available and was started)
+      if (autoTranscribe && Voice) {
         try {
           await Voice.stop()
         } catch (speechError) {

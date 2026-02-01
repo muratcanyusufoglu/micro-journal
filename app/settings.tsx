@@ -1,15 +1,7 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import {router} from "expo-router";
 import React from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextStyle,
-  View,
-  ViewStyle,
-} from "react-native";
+import {Alert, Pressable, ScrollView, Text, TextStyle, View, ViewStyle} from "react-native";
 import {useTheme} from "../src/theme/ThemeProvider";
 import {AppHeader, Card, Screen} from "../src/ui";
 
