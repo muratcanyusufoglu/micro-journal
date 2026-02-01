@@ -1,5 +1,6 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import {Image as ExpoImage} from "expo-image";
+import * as Linking from "expo-linking";
 import React, {useState} from "react";
 import {Pressable, Text, TextStyle, View, ViewStyle} from "react-native";
 import type {Mood} from "../data/types";
@@ -67,6 +68,15 @@ export function PhotoTextNoteCard({
     paddingRight: theme.spacing.md,
   };
 
+  const $link: TextStyle = {
+    fontSize: theme.typography.body,
+    lineHeight: 25.6,
+    color: theme.colors.accentPrimary,
+    textDecorationLine: "underline",
+    flex: 1,
+    paddingRight: theme.spacing.md,
+  };
+
   const $timestampRow: ViewStyle = {
     flexDirection: "row",
     alignItems: "center",
@@ -104,9 +114,7 @@ export function PhotoTextNoteCard({
 
       <View style={$footer}>
         <View style={$header}>
-          <Text style={$text} numberOfLines={3}>
-            {text}
-          </Text>
+          <LinkableText text={text} style={$text} linkStyle={$link} numberOfLines={3} />
           <Pressable
             style={({pressed}) => [
               $menuButton,
@@ -192,4 +200,55 @@ function getMoodMeta(mood: Mood | null | undefined): {
     : mood === "focused"
     ? {label: "Focused", colorKey: "tagFocused"}
     : {label: "Sad", colorKey: "tagSad"};
+}
+
+function LinkableText({
+  text,
+  style,
+  linkStyle,
+  numberOfLines,
+}: {
+  text: string;
+  style: TextStyle;
+  linkStyle: TextStyle;
+  numberOfLines?: number;
+}) {
+  // URL regex pattern
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  if (parts.length === 1) {
+    // No URL found, return plain text
+    return <Text style={style} numberOfLines={numberOfLines}>{text}</Text>;
+  }
+
+  return (
+    <Text style={style} numberOfLines={numberOfLines}>
+      {parts.map((part, index) => {
+        // Check if part is a URL
+        const isUrl = /^https?:\/\//.test(part);
+        if (isUrl) {
+          return (
+            <Pressable
+              key={index}
+              onPress={async () => {
+                try {
+                  const url = part.trim();
+                  const canOpen = await Linking.canOpenURL(url);
+                  if (canOpen) {
+                    await Linking.openURL(url);
+                  }
+                } catch (error) {
+                  console.error("Error opening URL:", error);
+                }
+              }}
+            >
+              <Text style={linkStyle}>{part}</Text>
+            </Pressable>
+          );
+        }
+        return <Text key={index}>{part}</Text>;
+      })}
+    </Text>
+  );
 }

@@ -1,5 +1,6 @@
 import {MaterialIcons} from "@expo/vector-icons";
 import {LinearGradient} from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import React from "react";
 import {Pressable, Text, TextStyle, View, ViewStyle} from "react-native";
 import type {Mood} from "../data/types";
@@ -46,6 +47,15 @@ export function TextNoteCard({
     fontSize: theme.typography.body,
     lineHeight: 25.6,
     color: theme.colors.textPrimary,
+    flex: 1,
+    paddingRight: theme.spacing.md,
+  };
+
+  const $link: TextStyle = {
+    fontSize: theme.typography.body,
+    lineHeight: 25.6,
+    color: theme.colors.accentPrimary,
+    textDecorationLine: "underline",
     flex: 1,
     paddingRight: theme.spacing.md,
   };
@@ -113,7 +123,7 @@ export function TextNoteCard({
         )}
 
         <View style={$header}>
-          <Text style={$text}>{text}</Text>
+          <LinkableText text={text} style={$text} linkStyle={$link} />
           <Pressable
             style={({pressed}) => [
               $menuButton,
@@ -230,4 +240,53 @@ function withAlpha(hexColor: string, alpha: number): string {
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function LinkableText({
+  text,
+  style,
+  linkStyle,
+}: {
+  text: string;
+  style: TextStyle;
+  linkStyle: TextStyle;
+}) {
+  // URL regex pattern
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  if (parts.length === 1) {
+    // No URL found, return plain text
+    return <Text style={style}>{text}</Text>;
+  }
+
+  return (
+    <Text style={style}>
+      {parts.map((part, index) => {
+        // Check if part is a URL
+        const isUrl = /^https?:\/\//.test(part);
+        if (isUrl) {
+          return (
+            <Pressable
+              key={index}
+              onPress={async () => {
+                try {
+                  const url = part.trim();
+                  const canOpen = await Linking.canOpenURL(url);
+                  if (canOpen) {
+                    await Linking.openURL(url);
+                  }
+                } catch (error) {
+                  console.error("Error opening URL:", error);
+                }
+              }}
+            >
+              <Text style={linkStyle}>{part}</Text>
+            </Pressable>
+          );
+        }
+        return <Text key={index}>{part}</Text>;
+      })}
+    </Text>
+  );
 }
