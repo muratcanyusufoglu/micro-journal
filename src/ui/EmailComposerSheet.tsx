@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
+import { Alert, Dimensions, Pressable, ScrollView, Text, TextInput, TextStyle, View, ViewStyle } from "react-native";
 import { loadEmailSettings } from "../data";
 import { useEmailComposer } from "../hooks/useEmailComposer";
 import { useTheme } from "../theme/ThemeProvider";
@@ -48,9 +48,7 @@ export function EmailComposerSheet({
     async function loadRecipients() {
       try {
         const settings = await loadEmailSettings();
-        console.log("📧 EmailComposerSheet: Loaded email settings:", settings);
         const recipientsList = settings.recipients || [];
-        console.log("📧 EmailComposerSheet: Recipients list:", recipientsList);
         setSavedRecipients(recipientsList);
 
         if (defaultRecipient) {
@@ -59,7 +57,7 @@ export function EmailComposerSheet({
           setRecipients(recipientsList.join(", "));
         }
       } catch (error) {
-        console.error("📧 EmailComposerSheet: Error loading email settings:", error);
+        console.error("Error loading email settings:", error);
         setSavedRecipients([]);
       }
     }
@@ -95,6 +93,9 @@ export function EmailComposerSheet({
     paddingBottom: theme.spacing.md,
   };
 
+  const screenHeight = Dimensions.get("window").height;
+  const maxSheetHeight = screenHeight * 0.7;
+
   const $inputContainer: ViewStyle = {
     gap: theme.spacing.sm,
   };
@@ -120,6 +121,7 @@ export function EmailComposerSheet({
   const $textarea: ViewStyle = {
     ...$input,
     minHeight: 120,
+    maxHeight: 200,
     textAlignVertical: "top",
   };
 
@@ -256,7 +258,12 @@ export function EmailComposerSheet({
 
   return (
     <BottomSheet visible={visible} title="Send Email" onClose={onClose}>
-      <View style={$container}>
+      <ScrollView 
+        style={{maxHeight: maxSheetHeight}}
+        contentContainerStyle={$container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+      >
         <View style={$inputContainer}>
           <Text style={$label}>To</Text>
           <View style={$inputRow}>
@@ -282,11 +289,8 @@ export function EmailComposerSheet({
                   },
                 ]}
                 onPress={() => {
-                  console.log("📧 EmailComposerSheet: Dropdown button pressed, savedRecipients count:", savedRecipients.length);
                   if (savedRecipients.length > 0) {
                     setShowRecipientDropdown(!showRecipientDropdown);
-                  } else {
-                    console.log("📧 EmailComposerSheet: No saved recipients available");
                   }
                 }}
                 disabled={savedRecipients.length === 0}
@@ -421,7 +425,7 @@ export function EmailComposerSheet({
             style={{flex: 1}}
           />
         </View>
-      </View>
+      </ScrollView>
     </BottomSheet>
   );
 }

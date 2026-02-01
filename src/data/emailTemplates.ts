@@ -1,5 +1,5 @@
-import type {Entry, Mood} from "./types";
-import {formatDisplayDate, formatDisplayTime} from "./db";
+import { formatDisplayDate, formatDisplayTime } from "./db";
+import type { Entry, Mood } from "./types";
 
 export type EmailTemplate = "single" | "daily" | "weekly";
 
@@ -134,6 +134,32 @@ export function generateDailyEmail(
   });
 
   return {subject, body: bodyLines.join("\n")};
+}
+
+export function buildDailyEmailPayload(
+  entries: Entry[],
+  dateKey: string
+): EmailPayload {
+  const {subject, body} = generateDailyEmail(entries, dateKey);
+  const attachments: string[] = [];
+
+  entries.forEach((entry) => {
+    const photoUri = normalizeFileUri(entry.photoUri);
+    const audioUri = normalizeFileUri(entry.audioUri);
+
+    if (photoUri && !attachments.includes(photoUri)) {
+      attachments.push(photoUri);
+    }
+    if (audioUri && !attachments.includes(audioUri)) {
+      attachments.push(audioUri);
+    }
+  });
+
+  return {
+    subject,
+    body,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  };
 }
 
 export function generateWeeklyEmail(

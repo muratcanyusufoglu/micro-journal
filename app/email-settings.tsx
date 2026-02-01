@@ -27,11 +27,9 @@ export default function EmailSettingsScreen() {
   async function loadSettings() {
     try {
       const settings = await loadEmailSettings();
-      console.log("📧 EmailSettings: Loaded settings:", settings);
-      console.log("📧 EmailSettings: Recipients count:", settings.recipients.length);
       setRecipients(settings.recipients);
     } catch (error) {
-      console.error("📧 EmailSettings: Error loading email settings:", error);
+      console.error("Error loading email settings:", error);
     } finally {
       setIsLoading(false);
     }
@@ -39,22 +37,15 @@ export default function EmailSettingsScreen() {
 
   async function saveSettings() {
     try {
-      console.log("📧 EmailSettings: saveSettings called");
-      console.log("📧 EmailSettings: Saving recipients:", recipients);
-      console.log("📧 EmailSettings: Recipients length:", recipients.length);
-      
       if (recipients.length === 0) {
         Alert.alert("No Recipients", "Please add at least one email address before saving");
         return;
       }
       
       await saveEmailSettings({recipients});
-      console.log("📧 EmailSettings: Settings saved successfully");
       
       // Verify it was saved
       const saved = await loadEmailSettings();
-      console.log("📧 EmailSettings: Verified saved settings:", saved);
-      console.log("📧 EmailSettings: Verified recipients count:", saved.recipients.length);
       
       if (saved.recipients.length === 0) {
         Alert.alert("Warning", "Settings were saved but could not be verified. Please try again.");
@@ -63,7 +54,7 @@ export default function EmailSettingsScreen() {
       
       Alert.alert("Saved", "Email settings saved successfully");
     } catch (error) {
-      console.error("📧 EmailSettings: Error saving email settings:", error);
+      console.error("Error saving email settings:", error);
       Alert.alert("Error", `Failed to save settings: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -142,17 +133,14 @@ export default function EmailSettingsScreen() {
     }
 
     const updatedRecipients = [...recipients, email];
-    console.log("📧 EmailSettings: Adding recipient:", email);
-    console.log("📧 EmailSettings: Updated recipients:", updatedRecipients);
     setRecipients(updatedRecipients);
     setNewEmail("");
 
     // Auto-save after adding
     try {
       await saveEmailSettings({recipients: updatedRecipients});
-      console.log("📧 EmailSettings: Auto-saved after adding recipient");
     } catch (error) {
-      console.error("📧 EmailSettings: Error auto-saving:", error);
+      console.error("Error auto-saving:", error);
       Alert.alert("Error", "Failed to save email. Please try again.");
     }
   }
@@ -164,9 +152,8 @@ export default function EmailSettingsScreen() {
     // Auto-save after removing
     try {
       await saveEmailSettings({recipients: updatedRecipients});
-      console.log("📧 EmailSettings: Auto-saved after removing recipient");
     } catch (error) {
-      console.error("📧 EmailSettings: Error auto-saving:", error);
+      console.error("Error auto-saving:", error);
       Alert.alert("Error", "Failed to save changes. Please try again.");
     }
   }

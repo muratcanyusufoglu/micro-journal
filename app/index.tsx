@@ -19,6 +19,7 @@ import {
   addPhotoEntry,
   addTextEntry,
   addVoiceEntry,
+  buildDailyEmailPayload,
   buildSingleEntryEmailPayload,
   deleteEntry,
   formatDisplayTime,
@@ -69,6 +70,7 @@ export default function TodayScreen() {
   const [editEntry, setEditEntry] = useState<Entry | null>(null);
   const [showEmailComposer, setShowEmailComposer] = useState(false);
   const [emailEntry, setEmailEntry] = useState<Entry | null>(null);
+  const [isDailyEmail, setIsDailyEmail] = useState(false);
   const emailComposer = useEmailComposer();
   const {autoTranscribe, setAutoTranscribe} = useVoiceSettings();
   const voiceRecorder = useVoiceRecorder(autoTranscribe);
@@ -539,12 +541,27 @@ export default function TodayScreen() {
           onClose={() => {
             setShowEmailComposer(false);
             setEmailEntry(null);
+            setIsDailyEmail(false);
           }}
-          defaultBody={emailEntry ? buildSingleEntryEmailPayload(emailEntry).body : ""}
-          defaultSubject={emailEntry ? buildSingleEntryEmailPayload(emailEntry).subject : ""}
+          defaultBody={
+            isDailyEmail && dateKey
+              ? buildDailyEmailPayload(todayEntries, dateKey).body
+              : emailEntry
+              ? buildSingleEntryEmailPayload(emailEntry).body
+              : ""
+          }
+          defaultSubject={
+            isDailyEmail && dateKey
+              ? buildDailyEmailPayload(todayEntries, dateKey).subject
+              : emailEntry
+              ? buildSingleEntryEmailPayload(emailEntry).subject
+              : ""
+          }
           onSend={async (recipients, subject, body) => {
             try {
-              const attachments = emailEntry
+              const attachments = isDailyEmail && dateKey
+                ? buildDailyEmailPayload(todayEntries, dateKey).attachments
+                : emailEntry
                 ? buildSingleEntryEmailPayload(emailEntry).attachments
                 : undefined;
 
@@ -556,6 +573,7 @@ export default function TodayScreen() {
               });
               setShowEmailComposer(false);
               setEmailEntry(null);
+              setIsDailyEmail(false);
               toast.showToast({
                 title: "Email Opened",
                 message: "Email composer opened",
@@ -582,10 +600,21 @@ export default function TodayScreen() {
             <Text style={$title}>Today</Text>
           </View>
 
-          <IconButton
-            icon="settings"
-            onPress={() => router.push("/settings")}
-          />
+          <View style={{flexDirection: "row", gap: theme.spacing.xs}}>
+            {todayEntries.length > 0 && (
+              <IconButton
+                icon="email"
+                onPress={() => {
+                  setIsDailyEmail(true);
+                  setShowEmailComposer(true);
+                }}
+              />
+            )}
+            <IconButton
+              icon="settings"
+              onPress={() => router.push("/settings")}
+            />
+          </View>
         </View>
 
         <ScrollView style={{flex: 1}} contentContainerStyle={$scrollContent}>
