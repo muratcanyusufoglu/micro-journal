@@ -245,6 +245,8 @@ export default function TodayScreen() {
       return;
     }
 
+    Keyboard.dismiss();
+
     try {
       const hasText = !!text.trim();
       const hasPhotos = photoPicker.photos.length > 0;

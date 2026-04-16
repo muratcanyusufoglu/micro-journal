@@ -1,11 +1,12 @@
-import React, {useState, useEffect} from "react";
-import {View, ViewStyle, ScrollView} from "react-native";
-import {useTheme} from "../theme/ThemeProvider";
-import {TextAreaCard} from "./TextAreaCard";
-import {MoodRibbonPicker} from "./MoodRibbonPicker";
-import {PrimaryButton} from "./PrimaryButton";
-import {PhotoGrid} from "./PhotoGrid";
-import type {ShareData, Mood} from "../data/types";
+import * as ImagePicker from "expo-image-picker";
+import React, { useEffect, useState } from "react";
+import { Keyboard, ScrollView, View, ViewStyle } from "react-native";
+import type { Mood, ShareData } from "../data/types";
+import { useTheme } from "../theme/ThemeProvider";
+import { MoodRibbonPicker } from "./MoodRibbonPicker";
+import { PhotoGrid } from "./PhotoGrid";
+import { PrimaryButton } from "./PrimaryButton";
+import { TextAreaCard } from "./TextAreaCard";
 
 interface CaptureScreenProps {
   shareData: ShareData;
@@ -41,8 +42,39 @@ export function CaptureScreen({
     setText(initialText);
   }, [shareData]);
 
+  async function handlePickPhoto() {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsMultipleSelection: false,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const uri = asset.uri;
+        
+        // React Native Image component can handle URIs with or without file:// prefix
+        // But we'll keep the original URI format from ImagePicker
+        // Check if photo is already in the list (avoid duplicates)
+        if (!photos.includes(uri)) {
+          setPhotos((prev) => [...prev, uri]);
+        }
+      }
+    } catch (error) {
+      console.error("Error picking photo:", error);
+    }
+  }
+
   function handleSave() {
     if (!text.trim() && photos.length === 0) return;
+    Keyboard.dismiss();
     onSave(text.trim(), mood, photos);
   }
 
@@ -82,15 +114,11 @@ export function CaptureScreen({
           footerRight={<MoodRibbonPicker value={mood} onChange={setMood} />}
         />
 
-        {photos.length > 0 && (
-          <PhotoGrid
-            photos={photos}
-            onRemovePhoto={handleRemovePhoto}
-            onAddPhoto={() => {
-              // Photo picker can be added later if needed
-            }}
-          />
-        )}
+        <PhotoGrid
+          photos={photos}
+          onRemovePhoto={handleRemovePhoto}
+          onAddPhoto={handlePickPhoto}
+        />
       </ScrollView>
 
       <View style={$buttonContainer}>

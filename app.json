@@ -33,7 +33,7 @@
       "backgroundColor": "#F7F6F3"
     },
     "ios": {
-      "buildNumber": "3",
+      "buildNumber": "7",
       "bundleIdentifier": "com.oneline.dailynotes",
       "supportsTablet": true,
       "entitlements": {
@@ -91,7 +91,7 @@
       ]
     },
     "web": {
-      "output": "static", 
+      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
